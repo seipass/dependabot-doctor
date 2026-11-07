@@ -39,8 +39,14 @@ jobs:
       - name: Install (no runtime dependencies)
         run: npm install --no-audit --no-fund
 
+      # `npm test` runs `node --test "test/*.test.js"`. The quotes stop sh and
+      # cmd.exe from expanding the glob, and Node only added glob support for
+      # --test in v21 — so on Node 18/20 the runner got the literal string and
+      # died with "Could not find 'test/*.test.js'". Running it under bash with
+      # an unquoted glob expands it on every OS and every supported Node.
       - name: Test
-        run: npm test
+        shell: bash
+        run: node --test test/*.test.js
 
       - name: Lint this repository's own dependabot.yml
         run: node bin/dependabot-doctor.js . --no-color
