@@ -23,7 +23,7 @@ const READ_COUNT = /\s*Read \d+ files?\.?/;
  *   detail?: string[]
  * }}
  */
-export function buildReport(result) {
+export function buildReport(result, { paste = false } = {}) {
   if (!result.ok) return buildUnreadable(result);
 
   const text = renderText(result);
@@ -39,7 +39,7 @@ export function buildReport(result) {
   // page keeps is the manifest count, and it is derived from the fetch list.
   const countLine = count.replace(READ_COUNT, '').trim();
 
-  const verdict = dropUnverifiedClean(head, result);
+  const verdict = ensureAVerdict(dropUnverifiedClean(head, result), result);
 
   const findings = blocks
     .slice(1)
@@ -47,7 +47,7 @@ export function buildReport(result) {
     .join('\n\n')
     .trim();
 
-  const cleanState = isClean(verdict, result);
+  const cleanState = !paste && isClean(verdict, result);
 
   return {
     kind: 'findings',
@@ -55,11 +55,11 @@ export function buildReport(result) {
     // §4's first sentence itself). The page stopped composing it at that point:
     // a sentence the engine already produces is the definition of the drift this
     // page exists to avoid.
-    verdict,
+    verdict: paste ? pasteVerdict(result, findings) : verdict,
     // Its count line is suppressed in the clean state only because the same
     // sentence already ends "… against N manifests". Suppression may reduce
     // claims; it may not remove a fact, and no fact is lost here (a94).
-    count: cleanState ? '' : countLine,
+    count: cleanState || paste ? '' : countLine,
     // A verdict of "1 entry" above eight findings reads as an arithmetic error
     // unless the units are on screen. This counts the rows being rendered, not a
     // fact the engine owns, so it is allowed page-side (a92) — but only when
@@ -132,6 +132,43 @@ function readLine(result) {
 function joinList(items) {
   if (items.length === 1) return items[0];
   return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+}
+
+/**
+ * page-copy.md, paste state (a92). Both sentences are true in the state that
+ * produced the false clean, and neither can be read as an all-clear: "nothing
+ * provable" and "nothing is dead" differ by one word and by the whole trust
+ * relationship.
+ */
+function pasteVerdict(result, findings) {
+  if (findings) {
+    const entries = result.summary?.entries ?? 1;
+    return [
+      `${entries} ${entries === 1 ? 'entry' : 'entries'} in the pasted file can't do anything. Everything about matching needs your manifests.`,
+    ];
+  }
+  return ['Nothing provable from this file alone. That is not a clean bill — matching needs your manifests.'];
+}
+
+/**
+ * Dropping the clean sentence must not leave the page with no verdict at all.
+ *
+ * The renderer prints "We couldn't check N entries." from its own count of
+ * skipped entries; v0.1.4 reports paste-mode and listing gaps under their own
+ * `check` names, so that count is zero and the sentence never fires — the reader
+ * gets skips with nothing above them. The page therefore reuses the renderer's
+ * own wording, with the count it can actually see: distinct ecosystem+directory
+ * pairs that were skipped.
+ */
+function ensureAVerdict(verdict, result) {
+  if (verdict.length > 0) return verdict;
+  const skipped = result.skipped ?? [];
+  if (skipped.length === 0) return verdict;
+  const entries = new Set(
+    skipped.map((item) => `${item.ecosystem ?? ''}|${item.directory ?? ''}`).filter((key) => key !== '|'),
+  ).size;
+  const count = entries > 0 ? entries : 1;
+  return [count === 1 ? "We couldn't check 1 entry." : `We couldn't check ${count} entries.`];
 }
 
 /**

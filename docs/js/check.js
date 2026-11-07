@@ -39,7 +39,10 @@ export function analyseText(configText, files, { listing = 'probe', file = '.git
   // point rather than trusting every caller.
   const effective = listing === 'full' && files.size <= 1 ? 'probe' : listing;
   const result = analyze({ configText, file, view: buildView(files) });
-  return buildReport(reconcile(result, { listing: effective }));
+  // Paste mode is its own state, not a thin repo: with no repository at all the
+  // engine's verdict is about a file it could only partly read, so the copy for
+  // this state is Strategy's (a92), never the clean sentence.
+  return buildReport(reconcile(result, { listing: effective }), { paste: files.size === 0 });
 }
 
 /** No network, no files: structural checks only, and it says so in the skips. */
