@@ -109,8 +109,8 @@ Consequences we depend on:
 - **File order never decides membership.** A catch-all written *first* does not
   steal from a specific group written later, and we never report that it did.
 - **A tie is not a defect.** If two groups score equally, both keep the
-  dependency, so neither is empty. We print nothing. (The only visible effect of
-  a tie is that the pull request comes from the first group in the file.)
+  dependency, so neither is empty and we print nothing. A dependency belongs to
+  every group that contains it.
 - **No `patterns` key and `patterns: []` are opposites.** Absent = 500, a
   catch-all that takes dependencies from pattern groups. Empty list = 0, matches
   nothing. The finding says which one it is.
