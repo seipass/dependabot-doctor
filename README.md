@@ -152,8 +152,10 @@ and only the first is visible to this tool:
 - **An update being available, or its type** (major/minor/patch). We only read
   what is committed. Any statement about "would an update fire" is out of scope.
 - **Ecosystems without an enumerator.** v1 enumerates `npm`, `pip`, `uv`,
-  `gomod`, `cargo`, `docker`, `github-actions`. Everything else is reported as
-  skipped, never as absent or empty.
+  `gomod`, `cargo`, `docker`, `github-actions`. For other ecosystems we still
+  know which files Dependabot reads, so a missing manifest is reported as
+  `ecosystem-absent`; group and ignore checks are skipped. If we know nothing
+  about the ecosystem at all, the entry is skipped and the reason is printed.
 - **No lockfile, no claim.** Without a committed lockfile (npm: package-lock,
   yarn.lock or pnpm-lock.yaml; pip/uv: poetry.lock, uv.lock, pdm.lock or
   Pipfile.lock; gomod: go.sum; cargo: Cargo.lock) the transitive set is unknown,
