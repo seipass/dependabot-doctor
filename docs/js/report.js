@@ -60,6 +60,12 @@ export function buildReport(result) {
     // sentence already ends "… against N manifests". Suppression may reduce
     // claims; it may not remove a fact, and no fact is lost here (a94).
     count: cleanState ? '' : countLine,
+    // A verdict of "1 entry" above eight findings reads as an arithmetic error
+    // unless the units are on screen. This counts the rows being rendered, not a
+    // fact the engine owns, so it is allowed page-side (a92) — but only when
+    // every row is a rule, when nothing is truncated, and when the numbers
+    // actually differ. Otherwise no clause: silence beats a wrong noun.
+    note: cleanState ? '' : ruleClause(result),
     findings,
     // A clean result is a result, not an absence: it names the files the check
     // actually opened, so "nothing found" cannot be mistaken for "nothing done".
@@ -69,13 +75,24 @@ export function buildReport(result) {
   };
 }
 
+const RULE_CODES = new Set(['ignore-no-match', 'no-op-group', 'captured-by-score']);
+
+/** "8 rules across 1 entry", or nothing. */
+function ruleClause(result) {
+  const rows = Array.isArray(result.defects) ? result.defects.length : 0;
+  const entries = result.summary?.entries ?? 0;
+  if (entries === 0 || rows <= entries) return '';
+  if (!result.defects.every((defect) => RULE_CODES.has(defect.code))) return '';
+  return `${rows} rules across ${entries} ${entries === 1 ? 'entry' : 'entries'}`;
+}
+
 /**
  * page-copy.md §4, second sentence — the reassurance, and the only place on the
  * page a population number appears. 86% of visitors land in this state, so
  * "clean" has to read as a result rather than as an empty panel.
  */
 const CLEAN_PARAGRAPH =
-  'That is the normal result: on a sweep of 234 real repositories, 14% had any finding at all. What this cannot tell you is whether your entries fire on the next run — that depends on which updates are available, which we cannot see offline.';
+  'That is the normal result: of 234 real repositories we swept, 33 had any finding at all. What this cannot tell you is whether your entries fire on the next run — that depends on which updates are available, which we cannot see offline.';
 
 /**
  * The engine's own clean verdict, i.e. every group was evaluated and matched.

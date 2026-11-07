@@ -107,6 +107,7 @@ function render(report) {
   const container = document.createDocumentFragment();
 
   for (const line of report.verdict) container.appendChild(node('p', 'verdict', line));
+  if (report.note) container.appendChild(node('p', 'note', report.note));
   if (report.count) container.appendChild(node('p', 'count', report.count));
 
   if (report.detail && report.detail.length > 0) {
