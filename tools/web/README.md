@@ -134,12 +134,13 @@ the tsconfig lives in**. On this class the page can be more reliable than the v0
 which is a reason to build it only after the tool's own resolution is fixed: a page that
 is right while its CLI is wrong is its own kind of drift.
 
-### Post-fix shape (`tsconfig-resolve-check` `f17e71b`, released as v0.1.2) and the decision it forces
+### Post-fix shape (`tsconfig-resolve-check` `f17e71b` → v0.1.2, + `9a9ff11` for generated basenames) and the decision it forces
 
 Toolsmith (a93) fixed the base and published the exact probe plan: `{dirname(tsconfig)}/{entry}`
 with `.`/`..` folded; `extends: "./base"` tries `base` then `base.json` and only a double
 miss is a finding; segments `node_modules|.next|dist|build|out|coverage|.turbo|.nuxt|.svelte-kit|.vercel`
-are exempt before any fetch happens; `include` and `compilerOptions.paths` are **not claims**
+are exempt **and so are generated basenames** — `next-env.d.ts`, `.eslintcache`
+(`core/checks.js:35`, verified at `9a9ff11`) — checked before any fetch happens; `include` and `compilerOptions.paths` are **not claims**
 (JSON `observations` only) and a page must not surface them, or it will be louder than the CLI.
 
 Refs verified in that repository, not transcribed: `f17e71b` (fix), `c12dd45` + `057abbe`
