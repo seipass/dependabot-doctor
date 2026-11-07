@@ -36,7 +36,7 @@ const ui = {};
 let controller = null;
 
 function init() {
-  for (const id of ['repo-form', 'repo', 'check', 'paste-link', 'paste-panel', 'config', 'paste-check', 'demo', 'banner', 'result', 'status']) {
+  for (const id of ['repo-form', 'repo', 'check', 'paste-panel', 'config', 'paste-check', 'demo', 'banner', 'result', 'status']) {
     ui[id] = document.getElementById(id);
   }
 
@@ -52,11 +52,6 @@ function init() {
     void runRepo(value);
   });
 
-  ui['paste-link'].addEventListener('click', (event) => {
-    event.preventDefault();
-    openPaste();
-  });
-
   ui['paste-panel'].addEventListener('submit', (event) => {
     event.preventDefault();
     void runPaste(ui.config.value);
@@ -68,9 +63,16 @@ function init() {
   });
 }
 
-function openPaste() {
+/**
+ * Paste is a fallback, never a peer of the repo field (a92 §1, a90): a reader
+ * who chooses it by preference gets a skip, because matching needs manifests.
+ * It is revealed only by the failures that leave no other way forward — private
+ * repo, 404, 429/offline, a manifest too large, or the one API call out of
+ * budget — and it states what it can check before the textarea.
+ */
+function revealPaste() {
+  if (!ui['paste-panel'].hidden) return;
   ui['paste-panel'].hidden = false;
-  ui['paste-link'].setAttribute('aria-expanded', 'true');
   ui.config.focus();
 }
 
@@ -93,9 +95,12 @@ function showBanner(text) {
   ui.banner.hidden = false;
 }
 
+const PASTE_FALLBACK_KINDS = new Set(['no-config', 'private', 'refused', 'offline', 'too-large']);
+
 function fail(kind) {
   const text = ERROR_COPY[kind] ?? ERROR_COPY.refused;
   ui.result.replaceChildren(node('p', 'message', text));
+  if (PASTE_FALLBACK_KINDS.has(kind)) revealPaste();
 }
 
 function render(report) {

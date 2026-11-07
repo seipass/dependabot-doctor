@@ -47,14 +47,18 @@ export function buildReport(result) {
     .join('\n\n')
     .trim();
 
-  const cleanState = isClean(verdict);
+  const cleanState = isClean(verdict, result);
 
   return {
     kind: 'findings',
-    // In the clean state, page-copy.md §4 is the verdict: it already carries the
-    // counts, so printing the engine's clean sentence and the count line as well
-    // would say the same thing three times. See the note in cleanHeadline().
-    verdict: cleanState ? [cleanHeadline(result)] : verdict,
+    // The clean sentence is the renderer's, verbatim (v0.1.4 prints page-copy
+    // §4's first sentence itself). The page stopped composing it at that point:
+    // a sentence the engine already produces is the definition of the drift this
+    // page exists to avoid.
+    verdict,
+    // Its count line is suppressed in the clean state only because the same
+    // sentence already ends "… against N manifests". Suppression may reduce
+    // claims; it may not remove a fact, and no fact is lost here (a94).
     count: cleanState ? '' : countLine,
     findings,
     // A clean result is a result, not an absence: it names the files the check
@@ -66,36 +70,29 @@ export function buildReport(result) {
 }
 
 /**
- * page-copy.md §4, verbatim. The reader who most needs this page is the one
- * whose config is fine, and a bare "no findings" reads as a broken tool — 86%
- * of visitors land here, so "clean" has to be a result rather than an absence.
- *
- * The engine's own clean sentence ("All N of your groups match at least one
- * dependency.") and its count line are not printed in this state: §4 already
- * carries the same counts, and three statements of one fact reads like a tool
- * padding its output. This is the one place the page's wording supersedes the
- * renderer's, and the string is Strategy's, not mine.
+ * page-copy.md §4, second sentence — the reassurance, and the only place on the
+ * page a population number appears. 86% of visitors land in this state, so
+ * "clean" has to read as a result rather than as an empty panel.
  */
-function cleanHeadline(result) {
-  const entries = result.summary?.entries ?? 0;
-  const manifests = Object.values(result.manifests ?? {}).reduce((sum, value) => sum + value, 0);
-  return `Nothing in your dependabot.yml is dead. We checked ${count(entries, 'entry', 'entries')} against ${count(manifests, 'manifest', 'manifests')}.`;
-}
-
 const CLEAN_PARAGRAPH =
   'That is the normal result: on a sweep of 234 real repositories, 14% had any finding at all. What this cannot tell you is whether your entries fire on the next run — that depends on which updates are available, which we cannot see offline.';
 
-function count(value, one, many) {
-  return `${value} ${value === 1 ? one : many}`;
-}
-
-/** The engine's own clean verdict, i.e. every group was evaluated and matched. */
-function isClean(verdict) {
-  return verdict.some(
-    (line) =>
-      /^All \d+ of your groups match at least one dependency\.$/.test(line) ||
-      /^Your 1 group matches at least one dependency\.$/.test(line),
-  );
+/**
+ * The engine's own clean verdict, i.e. every group was evaluated and matched.
+ *
+ * The positive test on the sentence is not enough on its own: the engine also
+ * prints it when a dependency set could not be enumerated, and Toolsmith's rule
+ * (a93) is that "We couldn't check {k} entries." is the verified/unverified
+ * switch. So a clean state additionally requires that nothing was skipped for
+ * want of a dependency set and that no group went unchecked — if either is
+ * true, the reader gets the skip, never "nothing is dead".
+ */
+function isClean(verdict, result) {
+  const sentence = verdict.some((line) => /^Nothing in your dependabot\.yml is dead\./.test(line));
+  if (!sentence) return false;
+  const skipped = result.skipped ?? [];
+  if (skipped.some((item) => item.check === 'dependency-set')) return false;
+  return uncheckableGroups(result) === 0;
 }
 
 /**
@@ -117,8 +114,8 @@ function joinList(items) {
 }
 
 /**
- * "All N of your groups match at least one dependency" is a claim about every
- * group. When a group went unchecked it is not true, and a clean-looking
+ * "Nothing in your dependabot.yml is dead" is a claim about every entry. When a
+ * group went unchecked it is not true, and a clean-looking
  * verdict is the most damaging thing this page could print — it reads as "you
  * may close the tab". The unchecked count is already in the verdict, so the
  * clean sentence is dropped rather than qualified: qualifying it would be new
@@ -126,11 +123,7 @@ function joinList(items) {
  */
 function dropUnverifiedClean(lines, result) {
   if (uncheckableGroups(result) === 0) return lines;
-  return lines.filter(
-    (line) =>
-      !/^All \d+ of your groups match at least one dependency\.$/.test(line) &&
-      !/^Your 1 group matches at least one dependency\.$/.test(line),
-  );
+  return lines.filter((line) => !/^Nothing in your dependabot\.yml is dead\./.test(line));
 }
 
 /** How many groups the engine could not evaluate (the set text.js counts). */

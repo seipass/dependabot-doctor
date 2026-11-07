@@ -112,7 +112,7 @@ test('page pipeline reproduces the frozen demo output exactly', () => {
   const files = new Map(Object.entries(DEMO.files).map(([path, file]) => [path, file.text]));
   const report = analyseText(files.get('.github/dependabot.yml'), files);
 
-  assert.deepEqual(report.verdict, ['1 group matched, but lost its dependency to a higher-scoring group.']);
+  assert.deepEqual(report.verdict, ['1 entry matched, but lost its dependency to a higher-scoring group.']);
   // The "Read N files." sentence is stripped on purpose (a94); the manifest
   // count is derived from the fetch list, never typed.
   assert.equal(report.count, 'Checked 1 npm manifest.');

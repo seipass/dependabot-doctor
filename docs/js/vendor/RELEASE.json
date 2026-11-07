@@ -1,19 +1,19 @@
 {
-  "ref": "v0.1.2",
-  "commit": "e6b285b5b604cd229129327d0b2d6a824eb1efad",
-  "tag_object": "db04597f23d44fdd7eeb60e69d154ba6fb9e5a33",
-  "tree": "a1b7bcaaeecb4811b1466fce91700e8b0e26377c",
-  "subject": "release: 0.1.2",
-  "generated": "2026-11-07T04:44:13.921Z",
+  "ref": "v0.1.4",
+  "commit": "de8f20b715c13ccbd0f9effe30e6dad295829eb5",
+  "tag_object": "fa2504fc57251df6c85fb2e5393b0bba05ee834e",
+  "tree": "8ba59a5e0c2c2dffc06da4503ab32d34bc4d0e2a",
+  "subject": "release: 0.1.4",
+  "generated": "2026-11-07T05:02:07.860Z",
   "note": "docs/js/vendor/ is a byte-identical mirror of this ref. Regenerate with tools/web/sync-vendor.mjs.",
   "core_files": {
     "core/analyze.js": {
-      "sha256": "7aabc54b3562c197076d33a00db951ba979bd4940d98e6604cca7cc680981114",
+      "sha256": "594a6279f2e63075d331620f5715873ba861c008d08bffdc5a9a2cd40ce44af6",
       "bytes": 3969
     },
     "core/checks.js": {
-      "sha256": "4b696f2b09a3f4b1fb4dd783f1d79e466260990fb4a30e1b9fde72480107ea11",
-      "bytes": 25631
+      "sha256": "5454dc4fa03198a7bd93a637006644d3655c3a26a8f5e1eb849e0a2fec664371",
+      "bytes": 26679
     },
     "core/config.js": {
       "sha256": "d9138862a42e75939e24cd55816468f7c19b718475b5692fd8f8a8c54da768c0",
@@ -68,8 +68,8 @@
       "bytes": 2781
     },
     "core/report/text.js": {
-      "sha256": "3c1d31be2fc8d51cd0cee39997e85032920716cec88704f574ae512744f3b289",
-      "bytes": 11718
+      "sha256": "eefca942b0b6884e900f706033cfcda852de4d5fe0bd44a1e7f13ca5c5d99c77",
+      "bytes": 12745
     },
     "core/specificity.js": {
       "sha256": "39d2ffe571d71317099ab68e15adbc6ca0a9375bcb4f06104c904935759f7ef0",

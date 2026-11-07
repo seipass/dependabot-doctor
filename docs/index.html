@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>dependabot-doctor — find dependabot.yml groups that match nothing</title>
+<title>dependabot-doctor — which parts of your dependabot.yml don't apply</title>
 <meta name="description" content="Paste a public repo: see which dependabot.yml groups match no dependency, which matched and lost to a more specific group, and the one-line fix. Runs in your browser.">
 <link rel="canonical" href="https://seipass.github.io/dependabot-doctor/">
 <meta name="robots" content="index,follow">
@@ -75,7 +75,9 @@ button {
 button[disabled] { opacity: 0.55; cursor: progress; }
 .hint { margin: 0.5rem 0 0; font-size: 0.9rem; color: var(--muted); }
 
-.paste { margin: 0.9rem 0 0; display: grid; gap: 0.5rem; }
+.paste { margin: 1.1rem 0 0; display: grid; gap: 0.5rem; }
+.paste-title { font-size: 1rem; margin: 0; }
+.paste-scope { margin: 0; font-size: 0.9rem; color: var(--muted); max-width: 74ch; }
 .paste label { font-family: var(--mono); font-size: 0.85rem; color: var(--muted); }
 .paste textarea {
   width: 100%; font-family: var(--mono); font-size: 0.85rem; line-height: 1.45;
@@ -151,25 +153,27 @@ footer { border-top: 1px solid var(--line); padding: 1rem 0 2rem; color: var(--m
   </header>
 
   <main id="top">
-    <h1>Find the groups in your dependabot.yml that match nothing</h1>
+    <h1>Which parts of your dependabot.yml don't apply to this repo</h1>
 
-    <p class="sub">If your update job logged <q>Please check your configuration as there are groups where no dependencies match</q> this page tells you which groups are dead — and which ones matched and still lost their dependencies to another group.</p>
+    <p class="sub">If your update job logged <q>Please check your configuration as there are groups where no dependencies match</q>, this page checks every entry in the file. The three that most often don't apply: an ecosystem your repo doesn't have, an ignore rule matching no dependency, and a directory with no manifest in it.</p>
 
     <form id="repo-form" class="checker" action="#" novalidate>
       <label class="sr-only" for="repo">Public GitHub repository</label>
       <input id="repo" name="repo" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="owner/repo" required>
       <button id="check" type="submit">Check this repo</button>
     </form>
-    <p class="hint">Public GitHub repo. Or <a id="paste-link" href="#paste" aria-expanded="false" aria-controls="paste-panel">paste your YAML instead →</a></p>
+    <p class="hint">Public GitHub repo.</p>
 
     <form id="paste-panel" class="paste" action="#" hidden>
+      <h2 class="paste-title">Check the file without the repo</h2>
+      <p class="paste-scope">Pasting checks empty patterns lists and nothing else — matching needs your manifests.</p>
       <label for="config">.github/dependabot.yml</label>
       <textarea id="config" name="config" rows="10" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="version: 2&#10;updates:&#10;  - package-ecosystem: npm&#10;    directory: /"></textarea>
       <button id="paste-check" type="submit">Check this YAML</button>
     </form>
 
     <p class="trust">Your config is never uploaded, and there is no account or token: this page reads public files from GitHub in your browser. If a check needs a file list or a branch list, we make one request for each, and we say so before we make it.</p>
-    <p class="fine">Nothing is stored. No sign-in.</p>
+    <p class="fine">No sign-in. We keep nothing after you leave: no cache, no cookie, no analytics.</p>
 
     <p class="example"><a id="demo" href="#example">Example: Fastjur/dependabot-group-specificity-repro — the repro repo from dependabot-core #14576, deliberately tiny.</a></p>
 
@@ -202,7 +206,7 @@ footer { border-top: 1px solid var(--line); padding: 1rem 0 2rem; color: var(--m
 
   <section class="section">
     <h2>Run it locally</h2>
-    <p><code>npx --yes github:seipass/dependabot-doctor#v0.1.2</code></p>
+    <p><code>npx --yes github:seipass/dependabot-doctor#v0.1.4</code></p>
   </section>
 
   <section class="section">
@@ -222,7 +226,7 @@ footer { border-top: 1px solid var(--line); padding: 1rem 0 2rem; color: var(--m
   <p class="star">If this saved you a debugging session, a star helps the next person find it. <a href="https://github.com/seipass/dependabot-doctor">github.com/seipass/dependabot-doctor</a></p>
 
   <footer>
-    dependabot-doctor <span id="doc-version">0.1.2</span> · MIT · checks run in your browser against the released core
+    dependabot-doctor <span id="doc-version">0.1.4</span> · MIT · checks run in your browser against the released core
   </footer>
 </div>
 <script type="module" src="./js/app.js"></script>

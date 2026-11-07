@@ -32,8 +32,14 @@ const MAX_PASTE_BYTES = 1024 * 1024;
 
 /** Pure: text + a file map -> screen blocks. Used by paste mode and the demo. */
 export function analyseText(configText, files, { listing = 'probe', file = '.github/dependabot.yml' } = {}) {
+  // 'full' means "a real directory listing was read". Without one, the engine
+  // would report `ecosystem-absent` for a config it never looked at — inferred
+  // absence from missing data, the failure this page exists to avoid (a95
+  // reproduced it with `listing:'full'` and an empty map). Guard at the entry
+  // point rather than trusting every caller.
+  const effective = listing === 'full' && files.size <= 1 ? 'probe' : listing;
   const result = analyze({ configText, file, view: buildView(files) });
-  return buildReport(reconcile(result, { listing }));
+  return buildReport(reconcile(result, { listing: effective }));
 }
 
 /** No network, no files: structural checks only, and it says so in the skips. */
