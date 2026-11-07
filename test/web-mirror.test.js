@@ -64,6 +64,28 @@ test('the release-tag guard itself fires, and only for real tags', () => {
 });
 
 
+/**
+ * The record's identity fields must describe the commit being released. v0.1.5
+ * shipped a record whose ref was v0.1.5 while its commit, tag object and tree
+ * all belonged to v0.1.4, and nothing read those three fields. A tag cannot
+ * describe itself, so an untagged record says tag_object: null rather than
+ * inheriting the previous release's identity.
+ */
+test('the release record describes this commit', { skip: !process.env.CI && false }, () => {
+  const head = execFileSync('git', ['show', '-s', '--format=%H%n%T', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim().split('\n');
+  const [commit, tree] = head;
+  assert.equal(release.commit, commit, 'RELEASE.json.commit is not HEAD');
+  assert.equal(release.tree, tree, 'RELEASE.json.tree is not HEAD^{tree}');
+  const tagObject = (() => {
+    try {
+      return execFileSync('git', ['rev-parse', 'HEAD^{commit}^{tag}'], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    } catch {
+      return null;
+    }
+  })();
+  assert.equal(release.tag_object, tagObject, 'RELEASE.json.tag_object disagrees with whether HEAD is tagged');
+});
+
 const hasGit = () => {
   try {
     execFileSync('git', ['rev-parse', '--git-dir'], { cwd: root, stdio: 'ignore' });

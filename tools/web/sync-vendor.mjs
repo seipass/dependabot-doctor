@@ -35,7 +35,13 @@ const argOf = (name, fallback) => {
   return index >= 0 ? args[index + 1] : fallback;
 };
 
-const ref = argOf('ref', 'v0.1.0');
+// An untagged release cannot be described by a tag, and inventing one is how ref,
+// commit, tag_object and tree diverged on v0.1.5. --from-head records the commit
+// under test (HEAD) and says tag_object is null, so a record can never spell an
+// untagged release with a plausible previous tag's identity.
+const fromHead = args.includes('--from-head');
+const version = JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).version;
+const ref = argOf('ref', fromHead ? `v${version}` : 'v0.1.0');
 const fixtureDir = argOf('fixture', join(repoRoot, '..', '..', 'fixtures', 'demo-repro-c0f39de'));
 const vendorRoot = join(repoRoot, 'docs', 'js', 'vendor');
 
@@ -48,27 +54,37 @@ if (!existsSync(join(repoRoot, '.git'))) {
 }
 
 let release;
+const source = fromHead ? 'HEAD' : ref;
 try {
-  release = {
-    ref,
-    commit: git('rev-parse', `${ref}^{commit}`).trim(),
-    tag_object: (() => {
-      try {
-        return git('rev-parse', ref).trim();
-      } catch {
-        return null;
+  release = fromHead
+    ? {
+        ref,
+        commit: git('rev-parse', 'HEAD^{commit}').trim(),
+        tag_object: null,
+        tree: git('rev-parse', 'HEAD^{tree}').trim(),
+        subject: git('log', '-1', '--format=%s', 'HEAD').trim(),
+        source: 'HEAD at generation time; the tag is cut on this commit after the gates pass',
       }
-    })(),
-    tree: git('rev-parse', `${ref}^{tree}`).trim(),
-    subject: git('log', '-1', '--format=%s', `${ref}^{commit}`).trim(),
-  };
+    : {
+        ref,
+        commit: git('rev-parse', `${ref}^{commit}`).trim(),
+        tag_object: (() => {
+          try {
+            return git('rev-parse', `${ref}^{commit}^{tag}`).trim();
+          } catch {
+            return null;
+          }
+        })(),
+        tree: git('rev-parse', `${ref}^{tree}`).trim(),
+        subject: git('log', '-1', '--format=%s', `${ref}^{commit}`).trim(),
+      };
 } catch (error) {
-  console.error(`sync-vendor: cannot resolve ${ref}: ${error.message.split('\n')[0]}`);
+  console.error(`sync-vendor: cannot resolve ${ref}: ${error.message.split(String.fromCharCode(10))[0]}`);
   process.exit(2);
 }
 
 // ---- core/**/*.js ---------------------------------------------------------
-const coreFiles = git('ls-tree', '-r', '--name-only', ref, 'core')
+const coreFiles = git('ls-tree', '-r', '--name-only', source, 'core')
   .split('\n')
   .map((line) => line.trim())
   .filter((line) => line.endsWith('.js'));
@@ -80,7 +96,7 @@ if (coreFiles.length === 0) {
 rmSync(vendorRoot, { recursive: true, force: true });
 const files = {};
 for (const path of coreFiles) {
-  const text = execFileSync('git', ['show', `${ref}:${path}`], { cwd: repoRoot, encoding: 'utf8' });
+  const text = execFileSync('git', ['show', `${source}:${path}`], { cwd: repoRoot, encoding: 'utf8' });
   const target = join(vendorRoot, path);
   mkdirSync(dirname(target), { recursive: true });
   writeFileSync(target, text);

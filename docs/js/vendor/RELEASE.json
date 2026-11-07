@@ -1,10 +1,12 @@
 {
   "ref": "v0.1.5",
-  "commit": "de8f20b715c13ccbd0f9effe30e6dad295829eb5",
-  "tag_object": "fa2504fc57251df6c85fb2e5393b0bba05ee834e",
-  "tree": "8ba59a5e0c2c2dffc06da4503ab32d34bc4d0e2a",
-  "generated_at": "2026-11-07T05:59:43.791Z",
-  "count": 20,
+  "commit": "6446e62ee60e3589e918b3208e7b85295eccfd2d",
+  "tag_object": null,
+  "tree": "7c24688df88e05d9183241bfce8410dc20ba24ee",
+  "subject": "fix(page): make the release-tag guard fire, and test the guard itself",
+  "source": "HEAD at generation time; the tag is cut on this commit after the gates pass",
+  "generated": "2026-11-07T06:06:15.324Z",
+  "note": "docs/js/vendor/ is a byte-identical mirror of this ref. Regenerate with tools/web/sync-vendor.mjs.",
   "core_files": {
     "core/analyze.js": {
       "sha256": "3ae573a25df670e2f1b4a9cbd1d29e29c9696f2f444c26be1883248aad923b27",
@@ -85,6 +87,25 @@
     "core/yaml.js": {
       "sha256": "27fd9c4f2bbba2ec5cf87b00e0d0dc5a4ae78a19027ad1b5ff94f05507ce6f1e",
       "bytes": 18795
+    }
+  },
+  "demo": {
+    "repo": "Fastjur/dependabot-group-specificity-repro",
+    "sha": "c0f39dec5e2763707c6ff5abdb7f18d88383ea0f",
+    "taken": "2026-11-07",
+    "files": {
+      ".github/dependabot.yml": {
+        "sha256": "89fa85687fd8ac98954f26b6a43078b3cea8ae68925a6060c99a73dbf8ad4217",
+        "bytes": 417
+      },
+      "package.json": {
+        "sha256": "10707bbf56f195e17f7f5a509c0aca19aed1d0870d4c498d0f8ea330497f81cb",
+        "bytes": 194
+      },
+      "package-lock.json": {
+        "sha256": "2dba5679d17787d77ec5b1b4eed212d498e576839ce676412b15415395af756e",
+        "bytes": 58188
+      }
     }
   }
 }
