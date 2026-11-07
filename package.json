@@ -1,6 +1,6 @@
 {
   "name": "dependabot-doctor",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Offline linter for .github/dependabot.yml — find groups, ignore rules and directory globs that silently match nothing.",
   "keywords": [
     "dependabot",

@@ -717,3 +717,25 @@ updates:
     'without a file list we cannot claim a manifest is missing',
   );
 });
+
+test('any skip suppresses the clean sentence, not just a missing dependency set', async () => {
+  const { renderText } = await import('../core/report/text.js');
+  // A security-updates-only group is skipped, so the run did not look everywhere.
+  const result = await runAsync(
+    `version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      security:
+        applies-to: security-updates
+        patterns: ["*"]
+`,
+    { 'package.json': { dependencies: { react: '^18' } }, 'package-lock.json': NPM_LOCK(['react']) },
+  );
+  const text = renderText(result, {});
+  assert.doesNotMatch(text, /Nothing in your dependabot\.yml is dead/);
+  assert.match(text, /did not run/);
+});

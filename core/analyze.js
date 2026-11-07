@@ -9,7 +9,7 @@ import { createContext } from './deps/index.js';
 import { isManifestFile } from './manifests.js';
 import { runChecks } from './checks.js';
 
-export const VERSION = '0.1.4';
+export const VERSION = '0.1.5';
 
 /**
  * @param {{

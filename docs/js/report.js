@@ -107,9 +107,13 @@ const CLEAN_PARAGRAPH =
 function isClean(verdict, result) {
   const sentence = verdict.some((line) => /^Nothing in your dependabot\.yml is dead\./.test(line));
   if (!sentence) return false;
-  const skipped = result.skipped ?? [];
-  if (skipped.some((item) => item.check === 'dependency-set')) return false;
-  return uncheckableGroups(result) === 0;
+  // Zero skips of ANY kind, after reconcile. Gating on `dependency-set` alone was
+  // wrong: v0.1.4 reports paste-mode and listing gaps under their own `check`
+  // names, so the renderer's own clean sentence came through while a skip line
+  // said the directories and ecosystems were never looked at (a95 measured it on
+  // every paste case, 45 of 104 fixture-states). A sentence that says "nothing is
+  // dead" must not appear above a line saying nothing was checked.
+  return (result.skipped ?? []).length === 0;
 }
 
 /**
@@ -139,7 +143,7 @@ function joinList(items) {
  * copy, and page-copy.md owns those strings.
  */
 function dropUnverifiedClean(lines, result) {
-  if (uncheckableGroups(result) === 0) return lines;
+  if ((result.skipped ?? []).length === 0) return lines;
   return lines.filter((line) => !/^Nothing in your dependabot\.yml is dead\./.test(line));
 }
 
