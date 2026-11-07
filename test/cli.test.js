@@ -263,3 +263,36 @@ updates:
     fixture.cleanup();
   }
 });
+
+test('the printed patch actually applies with git apply --check', () => {
+  const fixture = repo({
+    '.github/dependabot.yml': `version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      nope:
+        patterns: ["nope*"]
+    ignore:
+      - dependency-name: "lodahs"
+`,
+    'package.json': { dependencies: { lodash: '^4' } },
+    'package-lock.json': { lockfileVersion: 3, packages: { '': {}, 'node_modules/lodash': { version: '4.17.21' } } },
+  });
+  try {
+    const git = spawnSync('git', ['--version'], { encoding: 'utf8' });
+    if (git.status !== 0) return; // no git on this machine: nothing to prove here
+    spawnSync('git', ['init', '-q'], { cwd: fixture.root });
+    const result = run([fixture.root, '--patch']);
+    const patch = result.stdout.slice(result.stdout.indexOf('--- a/'));
+    writeFileSync(join(fixture.root, 'fix.patch'), patch, 'utf8');
+    const check = spawnSync('git', ['apply', '--check', 'fix.patch'], { cwd: fixture.root, encoding: 'utf8' });
+    assert.equal(check.status, 0, `git apply --check failed: ${check.stderr}
+---
+${patch}`);
+  } finally {
+    fixture.cleanup();
+  }
+});

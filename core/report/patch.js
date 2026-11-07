@@ -44,20 +44,27 @@ export function buildPatch(source, defects, file = '.github/dependabot.yml') {
     }
   }
 
-  const out = [`--- a/${file}`, `+++ b/${file}`, '# printed only - dependabot-doctor never writes files'];
+  const out = [`--- a/${file}`, `+++ b/${file}`];
   let removedSoFar = 0;
   for (const hunk of merged) {
     const contextStart = Math.max(1, hunk.start - CONTEXT);
-    const contextEnd = Math.min(lines.length, hunk.end + CONTEXT);
-    const oldCount = contextEnd - contextStart + 1;
-    const newCount = oldCount - (hunk.end - hunk.start + 1);
-    const newStart = contextStart - removedSoFar;
-    out.push(`@@ -${contextStart},${oldCount} +${newStart},${newCount} @@`);
+    // A trailing newline in the source adds an empty element that is not a
+    // line; drop it so the hunk header and the emitted body agree.
+    let contextEnd = Math.min(lines.length, hunk.end + CONTEXT);
+    while (contextEnd > hunk.end && contextEnd === lines.length && lines[contextEnd - 1] === '') contextEnd -= 1;
+
+    const body = [];
     for (let line = contextStart; line <= contextEnd; line += 1) {
       const text = lines[line - 1] ?? '';
-      if (line >= hunk.start && line <= hunk.end) out.push(`-${text}`);
-      else out.push(` ${text}`);
+      if (line >= hunk.start && line <= hunk.end) body.push(`-${text}`);
+      else body.push(` ${text}`);
     }
+    const oldCount = body.length;
+    const newCount = body.filter((line) => line.startsWith(' ')).length;
+    const newStart = contextStart - removedSoFar;
+    out.push(`@@ -${contextStart},${oldCount} +${newStart},${newCount} @@`);
+    out.push(...body);
+    removedSoFar += hunk.end - hunk.start + 1;
     removedSoFar += hunk.end - hunk.start + 1;
   }
   return out.join('\n');

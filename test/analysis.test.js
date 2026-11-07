@@ -5,6 +5,29 @@ import { analyze } from '../core/analyze.js';
 import { serialize, exitCodeFor } from '../core/report/json.js';
 import { buildPatch } from '../core/report/patch.js';
 
+/** Every `@@ -a,b +c,d @@` must agree with the lines that follow it. */
+function patchCountsMatchBody(patch) {
+  const lines = patch.split(String.fromCharCode(10));
+  for (let i = 0; i < lines.length; i += 1) {
+    const match = /^@@ -\d+,(\d+) \+\d+,(\d+) @@/.exec(lines[i]);
+    if (!match) continue;
+    const expectedOld = Number(match[1]);
+    const expectedNew = Number(match[2]);
+    let oldCount = 0;
+    let newCount = 0;
+    for (let j = i + 1; j < lines.length && !lines[j].startsWith('@@'); j += 1) {
+      if (lines[j].startsWith('-')) oldCount += 1;
+      else if (lines[j].startsWith('+')) newCount += 1;
+      else if (lines[j].startsWith(' ') || lines[j] === '') {
+        oldCount += 1;
+        newCount += 1;
+      }
+    }
+    if (oldCount !== expectedOld || newCount !== expectedNew) return false;
+  }
+  return true;
+}
+
 const NPM_LOCK = (names) => ({
   lockfileVersion: 3,
   packages: Object.fromEntries([['', {}], ...names.map((name) => [`node_modules/${name}`, { version: '1.0.0' }])]),
@@ -491,7 +514,9 @@ updates:
   });
   const patch = buildPatch(config, result.defects, '.github/dependabot.yml');
   assert.ok(patch);
-  assert.match(patch, /printed only/);
+  assert.match(patch, /^--- a\//m);
+  assert.doesNotMatch(patch, /printed only/, 'the diff must be applyable, so no comment lines');
+  assert.ok(patchCountsMatchBody(patch), 'hunk headers must match the emitted body');
   assert.match(patch, /^-    groups:/m);
   assert.match(patch, /^-      nope:/m);
   assert.match(patch, /\n /, 'context lines are kept');
