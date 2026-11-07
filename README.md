@@ -34,13 +34,13 @@ Checked 14 github-actions workflows and 1 npm manifest. Read 17 files.
 Run it in one command:
 
 ```bash
-npx --yes github:seipass/dependabot-doctor#v0.1.3
+npx --yes github:seipass/dependabot-doctor#v0.1.4
 ```
 
 ## Run it
 
 ```bash
-npx --yes github:seipass/dependabot-doctor#v0.1.3
+npx --yes github:seipass/dependabot-doctor#v0.1.4
 ```
 
 Run from the repository you want to check; it reads
@@ -55,7 +55,7 @@ Other ways in:
 node bin/dependabot-doctor.js /path/to/repo
 
 # a GitHub Actions step
-- uses: seipass/dependabot-doctor@v0.1.3
+- uses: seipass/dependabot-doctor@v0.1.4
   with:
     path: .
     fail-on: all
