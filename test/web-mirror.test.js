@@ -33,10 +33,34 @@ const release = JSON.parse(readFileSync(join(vendor, 'RELEASE.json'), 'utf8'));
 const sha256 = (buffer) => createHash('sha256').update(buffer).digest('hex');
 // Fail closed in a release job: if RELEASE.json names a different tag than the one
 // being cut, every byte comparison below would validate the wrong referent.
+/**
+ * The release-job guard, as a function so it can be tested with inputs rather
+ * than hoped over by an early return. A guard that no input reaches is a guard
+ * that passes without running.
+ */
+function releaseRefProblem(recorded, tag) {
+  if (!/^v\d/.test(String(tag ?? ''))) return null; // not a release job
+  if (recorded === tag) return null;
+  return 'RELEASE.json says ' + recorded + ' but this job is cutting ' + tag;
+}
+
 test('the mirror records the tag being released', () => {
-  const tag = process.env.GITHUB_REF_NAME;
-  if (!tag || !/^vd/.test(tag)) return; // not a release job
-  assert.equal(release.ref, tag, 'RELEASE.json says ' + release.ref + ' but this job is cutting ' + tag);
+  const problem = releaseRefProblem(release.ref, process.env.GITHUB_REF_NAME);
+  assert.equal(problem, null, problem ?? '');
+});
+
+test('the release-tag guard itself fires, and only for real tags', () => {
+  // A release job with a stale record must fail (the v0.1.4 defect shape).
+  assert.match(releaseRefProblem('v0.1.4', 'v0.1.5'), /v0\.1\.4.*v0\.1\.5/);
+  // Matching record passes.
+  assert.equal(releaseRefProblem('v0.1.5', 'v0.1.5'), null);
+  // Not a release job: no tag, an empty tag, and a tag-like string that is not one.
+  assert.equal(releaseRefProblem('v0.1.4', undefined), null);
+  assert.equal(releaseRefProblem('v0.1.4', ''), null);
+  assert.equal(releaseRefProblem('v0.1.4', 'vd'), null);
+  // And the regex must accept real tags, which a literal "vd" pattern does not.
+  assert.equal(releaseRefProblem('v1.0.0-rc1', 'v1.0.0-rc1'), null);
+  assert.match(releaseRefProblem('v0.1.4', 'v1.0.0-rc1'), /v0\.1\.4/);
 });
 
 
