@@ -110,3 +110,26 @@ page needs **only a re-vendor** — plus:
   budget. Use the analyzer's `needs.branches` to decide before announcing.
 - Cap branch pagination (3 pages / 300 branches); a cap hit is `branches: null` →
   skip with "couldn't read the complete branch list", never a partial list.
+
+## Measured: what a page can decide that the CLI got wrong
+
+`tsconfig-resolve-check@v0.1.1` shipped a 10-of-10 false-positive class (Reviewer, a95)
+because it resolved each tsconfig's `files` entries against the **repo root** instead of
+against the tsconfig's own directory. The page consequence is the opposite of what you
+would guess, and it is worth measuring before designing page #3:
+
+| referenced file | root-relative probe | tsconfig-relative probe |
+|---|---|---|
+| `nestjs/nest` `tools/gulp/tsconfig.json` → `gulpfile.ts` | — | `206` |
+| `tldraw/tldraw` `templates/agent/tsconfig.json` → `vite.config.ts` | — | `206` |
+| `supabase/supabase` `examples/…/tsconfig.app.json` → `src/main.ts` | `404` | `206` (verified against the tree: all three example apps have it) |
+
+Same bug, same shape, reproduced in a *probe* rather than in the tool: a single
+`raw.githubusercontent.com` GET, resolved at the wrong base, produces a confident `404`
+that looks like evidence. That is why the rule here is "a failed fetch is never absence".
+
+A browser page can therefore decide `files-missing` exactly — one GET per referenced
+file, no directory listing, no API call — **provided it resolves against the directory
+the tsconfig lives in**. On this class the page can be more reliable than the v0.1.1 CLI,
+which is a reason to build it only after the tool's own resolution is fixed: a page that
+is right while its CLI is wrong is its own kind of drift.
