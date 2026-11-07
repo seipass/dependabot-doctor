@@ -41,7 +41,19 @@ export function runChecks({ config, ctx }) {
     return depCache.get(key);
   };
 
+  const hasRepositoryContents = ctx.filePaths.length > 0;
+
   for (const entry of config.entries) {
+    // `patterns: []` scores 0 and matches nothing as a matter of the config
+    // alone - no manifest, lockfile or tree is needed to prove it. Reported
+    // before any repository-dependent check so a pasted config (no repo view at
+    // all) still gets this one certain finding.
+    for (const group of entry.groups) {
+      if (group.appliesTo !== 'version-updates') continue;
+      if (!Array.isArray(group.patterns) || group.patterns.length > 0) continue;
+      defects.push(groupDefect(entry, group, 'empty-patterns', [], [], { total: 0, directTotal: 0 }));
+    }
+
     const declared = entry.directories;
     const resolved = [];
     const unmatched = [];
@@ -49,6 +61,14 @@ export function runChecks({ config, ctx }) {
       const matches = expandDirectory(pattern, ctx.directories);
       if (matches.length === 0) unmatched.push(pattern);
       for (const match of matches) if (!resolved.includes(match)) resolved.push(match);
+    }
+
+    if (!hasRepositoryContents) {
+      skip('repository-contents', 'no repository contents were provided, so directory and ecosystem checks were not run', {
+        ecosystem: entry.ecosystem,
+        directory: declared.join(', '),
+      });
+      continue;
     }
 
     for (const pattern of unmatched) {
@@ -126,6 +146,8 @@ function checkGroups(entry, dependencySet, ctx, defects, skip) {
   const groups = entry.groups.filter((group) => {
     if (group.appliesTo !== 'version-updates') return false;
     if (group.groupBy === 'dependency-name') return false;
+    // an empty patterns list is reported from the config alone
+    if (Array.isArray(group.patterns) && group.patterns.length === 0) return false;
     return true;
   });
 

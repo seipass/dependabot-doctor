@@ -690,3 +690,30 @@ updates:
   });
   assert.ok(positions[0] < positions[1] && positions[1] < positions[2], 'ignore before directory before group');
 });
+
+test('paste mode: with no repository contents, the config-only check still fires and nothing is accused', async () => {
+  const { analyze } = await import('../core/analyze.js');
+  const result = analyze({
+    configText: `version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      empty:
+        patterns: []
+`,
+    view: { filePaths: [], read: () => null },
+  });
+  assert.deepEqual(
+    result.defects.map((defect) => defect.code + ':' + defect.why),
+    ['no-op-group:empty-patterns'],
+  );
+  assert.ok(result.skipped.some((item) => item.check === 'repository-contents'));
+  assert.equal(
+    result.defects.some((defect) => defect.code === 'ecosystem-absent'),
+    false,
+    'without a file list we cannot claim a manifest is missing',
+  );
+});
