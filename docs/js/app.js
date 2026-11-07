@@ -7,6 +7,7 @@
 import { checkPasted, checkRepo, CheckFailure } from './check.js';
 import { checkDemo } from './demo.js';
 import { parseRepoInput, looksLikeYaml } from './github.js';
+import { VERSION } from './vendor/core/analyze.js';
 
 const ERROR_COPY = {
   'no-config': 'This repo has no .github/dependabot.yml. Nothing to check.',
@@ -107,6 +108,9 @@ function render(report) {
     container.appendChild(node('pre', 'detail', report.detail.join('\n')));
   }
 
+  if (report.clean) container.appendChild(node('p', 'clean', report.clean));
+  if (report.read) container.appendChild(node('p', 'read-set', report.read));
+
   if (report.findings) {
     const pre = node('pre', 'findings', report.findings);
     pre.setAttribute('tabindex', '0');
@@ -202,4 +206,10 @@ async function runDemo() {
   }
 }
 
+function stampVersion() {
+  const slot = document.getElementById('doc-version');
+  if (slot) slot.textContent = VERSION;
+}
+
 init();
+stampVersion();

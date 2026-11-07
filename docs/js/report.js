@@ -39,6 +39,8 @@ export function buildReport(result) {
   // page keeps is the manifest count, and it is derived from the fetch list.
   const countLine = count.replace(READ_COUNT, '').trim();
 
+  const verdict = dropUnverifiedClean(head, result);
+
   const findings = blocks
     .slice(1)
     .filter((block) => !block.startsWith('Not checked:'))
@@ -47,11 +49,74 @@ export function buildReport(result) {
 
   return {
     kind: 'findings',
-    verdict: head,
+    verdict,
     count: countLine,
     findings,
+    // A clean result is a result, not an absence: it names the files the check
+    // actually opened, so "nothing found" cannot be mistaken for "nothing done".
+    clean: isClean(verdict) ? CLEAN_COPY : null,
+    read: isClean(verdict) ? readLine(result) : '',
     skips: skipLines(result.skipped),
   };
+}
+
+/**
+ * page-copy.md §4, verbatim. The reader who most needs this page is the one
+ * whose config is fine, and a bare "no findings" reads as a broken tool.
+ */
+const CLEAN_COPY =
+  'Nothing to fix. What this does not tell you: whether those groups fire on the next run — that depends on which updates are available and on update types we cannot see offline.';
+
+/** The engine's own clean verdict, i.e. every group was evaluated and matched. */
+function isClean(verdict) {
+  return verdict.some(
+    (line) =>
+      /^All \d+ of your groups match at least one dependency\.$/.test(line) ||
+      /^Your 1 group matches at least one dependency\.$/.test(line),
+  );
+}
+
+/**
+ * The read set, from the engine's own log — the files this check parsed, not the
+ * files the repository has. Nothing here is a judgement; it is the answer to
+ * "what did you actually look at?".
+ */
+function readLine(result) {
+  const paths = ['.github/dependabot.yml', ...(result.files?.read_paths ?? [])];
+  const files = result.files?.read ?? paths.length;
+  const noun = files === 1 ? 'file' : 'files';
+  if (paths.length === 0) return '';
+  return `Read ${files} ${noun}: ${joinList(paths)}.`;
+}
+
+function joinList(items) {
+  if (items.length === 1) return items[0];
+  return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
+}
+}
+
+/**
+ * "All N of your groups match at least one dependency" is a claim about every
+ * group. When a group went unchecked it is not true, and a clean-looking
+ * verdict is the most damaging thing this page could print — it reads as "you
+ * may close the tab". The unchecked count is already in the verdict, so the
+ * clean sentence is dropped rather than qualified: qualifying it would be new
+ * copy, and page-copy.md owns those strings.
+ */
+function dropUnverifiedClean(lines, result) {
+  if (uncheckableGroups(result) === 0) return lines;
+  return lines.filter(
+    (line) =>
+      !/^All \d+ of your groups match at least one dependency\.$/.test(line) &&
+      !/^Your 1 group matches at least one dependency\.$/.test(line),
+  );
+}
+
+/** How many groups the engine could not evaluate (the set text.js counts). */
+function uncheckableGroups(result) {
+  return new Set(
+    (result.skipped ?? []).filter((item) => item.check === 'no-op-group').map((item) => item.group ?? item.reason),
+  ).size;
 }
 
 /**
@@ -98,14 +163,30 @@ function skipLines(skipped) {
   return lines;
 }
 
-/** "npm at /: no lockfile committed" -> "no lockfile committed" */
+/**
+ * Core prefixes a collector reason with its directory twice ("npm at /: /: no
+ * lockfile committed …"), because collectForEntry adds the directory and
+ * runChecks adds it again. The page prints the directory itself, so both are
+ * removed here — this is presentation, not a correction of the engine.
+ */
 function stripPrefix(reason, ecosystem, directory) {
-  if (!ecosystem) return reason;
-  const prefixes = [`${ecosystem} at ${directory}: `, `${ecosystem} at ${directory}, `];
-  for (const prefix of prefixes) {
-    if (reason.startsWith(prefix)) return reason.slice(prefix.length);
+  let text = reason;
+  if (ecosystem) {
+    for (const prefix of [`${ecosystem} at ${directory}: `, `${ecosystem} at ${directory}, `]) {
+      if (text.startsWith(prefix)) {
+        text = text.slice(prefix.length);
+        break;
+      }
+    }
   }
-  return reason;
+  const redundant = [`${directory}: `, `${directory}:`];
+  for (const prefix of redundant) {
+    if (text.startsWith(prefix)) {
+      text = text.slice(prefix.length);
+      break;
+    }
+  }
+  return text;
 }
 
 export { renderText };

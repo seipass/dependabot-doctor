@@ -22,6 +22,7 @@
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
@@ -106,6 +107,8 @@ button[disabled] { opacity: 0.55; cursor: progress; }
   max-width: 34ch;
 }
 .count { margin: 0 0 1rem; color: var(--muted); font-size: 0.92rem; }
+.clean { margin: 0 0 0.5rem; max-width: 74ch; }
+.read-set { margin: 0 0 1rem; font-family: var(--mono); font-size: 0.8rem; color: var(--muted); }
 .message { margin: 0.6rem 0 0; font-weight: 550; }
 pre {
   font-family: var(--mono);
@@ -165,7 +168,7 @@ footer { border-top: 1px solid var(--line); padding: 1rem 0 2rem; color: var(--m
       <button id="paste-check" type="submit">Check this YAML</button>
     </form>
 
-    <p class="trust">Your config is never uploaded, and there is no account or token: this page reads public files from GitHub in your browser. If your config needs a directory listing, we make one API call, and we say so before we make it.</p>
+    <p class="trust">Your config is never uploaded, and there is no account or token: this page reads public files from GitHub in your browser. If a check needs a file list or a branch list, we make one request for each, and we say so before we make it.</p>
     <p class="fine">Nothing is stored. No sign-in.</p>
 
     <p class="example"><a id="demo" href="#example">Example: Fastjur/dependabot-group-specificity-repro — the repro repo from dependabot-core #14576, deliberately tiny.</a></p>
@@ -199,7 +202,7 @@ footer { border-top: 1px solid var(--line); padding: 1rem 0 2rem; color: var(--m
 
   <section class="section">
     <h2>Run it locally</h2>
-    <p><code>npx --yes github:seipass/dependabot-doctor#v0.1.0</code></p>
+    <p><code>npx --yes github:seipass/dependabot-doctor#v0.1.2</code></p>
   </section>
 
   <section class="section">
@@ -219,7 +222,7 @@ footer { border-top: 1px solid var(--line); padding: 1rem 0 2rem; color: var(--m
   <p class="star">If this saved you a debugging session, a star helps the next person find it. <a href="https://github.com/seipass/dependabot-doctor">github.com/seipass/dependabot-doctor</a></p>
 
   <footer>
-    dependabot-doctor 0.1.0 · MIT · checks run in your browser against the released core
+    dependabot-doctor <span id="doc-version">0.1.2</span> · MIT · checks run in your browser against the released core
   </footer>
 </div>
 <script type="module" src="./js/app.js"></script>

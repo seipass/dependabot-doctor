@@ -15,6 +15,10 @@
 //      a failed fetch. That is the same rule core/checks.js states in its own
 //      header: anything we cannot prove is skipped, never reported as a defect.
 
+import { deriveDirectories } from './vendor/core/deps/index.js';
+import { expandDirectory } from './vendor/core/glob.js';
+import { isManifestFile } from './vendor/core/manifests.js';
+
 export const PROBE_FILES = {
   npm: ['package.json', 'package-lock.json', 'npm-shrinkwrap.json', 'yarn.lock', 'pnpm-lock.yaml'],
   pip: [
@@ -84,50 +88,45 @@ export function joinRepoPath(directory, name) {
  *
  * @param {Array<{ecosystem: string, directories: string[]}>} entries parsed config entries
  * @param {Set<string>|null} knownPaths full file list, when a tree call has already been made
- * @returns {{paths: string[], needsListing: boolean, literalEntries: Array, capped: boolean}}
+ * @returns {{paths: string[], needsListing: boolean, capped: boolean}}
  */
 export function planReads(entries, knownPaths = null) {
   const paths = new Set();
   let needsListing = false;
+  let capped = false;
+  const known = knownPaths ? new Set(knownPaths) : null;
+  // Directories are expanded with core's own glob matcher, against a directory
+  // list derived by core, so "/packages/*" means the same thing here as it does
+  // in the CLI.
+  const allDirectories = known ? deriveDirectories([...known]) : [];
 
   for (const entry of entries) {
-    for (const directory of entry.directories ?? ['/']) {
-      const glob = isGlobPattern(directory);
-      if (glob) {
-        // A glob cannot be expanded without a listing. Only ask for the listing
-        // when we do not already have one.
-        if (!knownPaths) needsListing = true;
-        continue;
-      }
-      if (!knownPaths) {
-        for (const name of PROBE_FILES[entry.ecosystem] ?? []) {
-          paths.add(joinRepoPath(directory, name));
-        }
+    const resolved = [];
+    for (const pattern of entry.directories ?? ['/']) {
+      if (known) {
+        resolved.push(...expandDirectory(pattern, allDirectories));
+      } else if (isGlobPattern(pattern)) {
+        // A glob cannot be expanded without a listing; the caller fetches one.
+        needsListing = true;
+      } else {
+        resolved.push(pattern);
       }
     }
-  }
 
-  let capped = false;
-  if (knownPaths) {
-    // With a real file list we read exactly what the collectors would open:
-    // the named files at each resolved directory, plus — for the ecosystems
-    // that walk directories — every path core's own detector considers a
-    // manifest. `isManifestFileSafe` is core's function, not a copy of it.
-    for (const entry of entries) {
-      for (const directory of entry.directories ?? ['/']) {
-        if (isGlobPattern(directory)) continue;
-        for (const name of PROBE_FILES[entry.ecosystem] ?? []) {
-          const path = joinRepoPath(directory, name);
-          if (knownPaths.has(path)) paths.add(path);
-        }
-        if (LISTING_DEPENDENT.has(entry.ecosystem)) {
-          for (const path of knownPaths) {
-            if (paths.size >= MAX_PROBE_FILES) {
-              capped = true;
-              break;
-            }
-            if (isUnder(directory, path)) paths.add(path);
+    for (const directory of resolved) {
+      for (const name of PROBE_FILES[entry.ecosystem] ?? []) {
+        const path = joinRepoPath(directory, name);
+        if (!known || known.has(path)) paths.add(path);
+      }
+      if (known && LISTING_DEPENDENT.has(entry.ecosystem)) {
+        // With a real file list, read what the collectors would read: every
+        // path core's own detector calls a manifest for this ecosystem.
+        for (const path of known) {
+          if (paths.size >= MAX_PROBE_FILES) {
+            capped = true;
+            break;
           }
+          if (isUnder(directory, path) && isManifestFile(entry.ecosystem, path)) paths.add(path);
         }
       }
     }

@@ -1,19 +1,19 @@
 {
-  "ref": "v0.1.0",
-  "commit": "4fd95d6842844d0976e4eede5f94724d9e540f70",
-  "tag_object": "2677f9bc8837304ec84a5a38154620a7ae8554aa",
-  "tree": "e23b484d27a876846f457886bc80a8ec576ef68e",
-  "subject": "dependabot-doctor 0.1.0",
-  "generated": "2026-11-07T04:34:21.362Z",
+  "ref": "v0.1.2",
+  "commit": "e6b285b5b604cd229129327d0b2d6a824eb1efad",
+  "tag_object": "db04597f23d44fdd7eeb60e69d154ba6fb9e5a33",
+  "tree": "a1b7bcaaeecb4811b1466fce91700e8b0e26377c",
+  "subject": "release: 0.1.2",
+  "generated": "2026-11-07T04:44:13.921Z",
   "note": "docs/js/vendor/ is a byte-identical mirror of this ref. Regenerate with tools/web/sync-vendor.mjs.",
   "core_files": {
     "core/analyze.js": {
-      "sha256": "8de035c25db501a4864388bf206739c8937dff81634a79212eeba047c9d36f99",
+      "sha256": "7aabc54b3562c197076d33a00db951ba979bd4940d98e6604cca7cc680981114",
       "bytes": 3969
     },
     "core/checks.js": {
-      "sha256": "1bfeb0a9468047fbcfb911972fb96453902aa756d23ea1dc1de325b4f15f6591",
-      "bytes": 25451
+      "sha256": "4b696f2b09a3f4b1fb4dd783f1d79e466260990fb4a30e1b9fde72480107ea11",
+      "bytes": 25631
     },
     "core/config.js": {
       "sha256": "d9138862a42e75939e24cd55816468f7c19b718475b5692fd8f8a8c54da768c0",
@@ -40,8 +40,8 @@
       "bytes": 7047
     },
     "core/deps/npm.js": {
-      "sha256": "4a6b833c41eb8532d7e36481d33f010846e6059ac57fa602b7ae3671cc797d47",
-      "bytes": 8426
+      "sha256": "7589e324f48dbe416aecd00ec7218fcebed318ec039dfb15774b6e8c620abd4a",
+      "bytes": 9114
     },
     "core/deps/python.js": {
       "sha256": "0993f20e906a8a648e0af29407692bb9a7efc5e44f1a0d8a59dd72c77519f108",
@@ -64,8 +64,8 @@
       "bytes": 1812
     },
     "core/report/patch.js": {
-      "sha256": "5841eafc0c85695cc3da5262af0663ecbe72a4d69774ab1569132556687363a0",
-      "bytes": 2494
+      "sha256": "88907866fbdf583365047ca535bd33446609c76ac4fc4d31e4baccf31a44b954",
+      "bytes": 2781
     },
     "core/report/text.js": {
       "sha256": "3c1d31be2fc8d51cd0cee39997e85032920716cec88704f574ae512744f3b289",

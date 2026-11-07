@@ -42,6 +42,22 @@ export function buildView(files) {
 /**
  * Drop claims the transport cannot support, and say so out loud.
  *
+ * Two reasons a claim has to go, and only two:
+ *
+ *   1. The check needs a directory listing (`directory-no-match`,
+ *      `ecosystem-absent`) and probes cannot provide one.
+ *   2. The entry's ecosystem is discovered by walking a directory. A collector
+ *      that walks and finds nothing returns "complete, zero dependencies", and
+ *      a zero-dependency set turns into "matched 0 of 0 direct dependencies" —
+ *      which is a false finding on a repo whose workflows exist and were simply
+ *      never listed. (Measured: seipass/dependabot-doctor read `action.yml`
+ *      only, and the engine reported its `actions/*` group as matching
+ *      nothing.) So the whole entry is uncheckable in probe mode, whatever the
+ *      collector concluded.
+ *
+ * Everything dropped is replaced by an entry in the §5 skipped block and stays
+ * counted in the verdict; nothing disappears quietly.
+ *
  * @param {object} result analyze() output
  * @param {{listing: 'full'|'probe'|'partial'}} options
  */
@@ -51,11 +67,16 @@ export function reconcile(result, { listing = 'probe' } = {}) {
   // is used untouched.
   if (listing === 'full') return result;
 
+  const blocked = new Set();
+  for (const entry of result.entries ?? []) {
+    if (LISTING_DEPENDENT.has(entry.ecosystem)) blocked.add(key(entry.ecosystem, dirText(entry)));
+  }
+
   const defects = [];
-  const dropped = [];
   for (const defect of result.defects) {
-    if (LISTING_CODES.has(defect.code)) dropped.push(defect);
-    else defects.push(defect);
+    if (LISTING_CODES.has(defect.code)) continue;
+    if (blocked.has(key(defect.ecosystem, defect.directory))) continue;
+    defects.push(defect);
   }
 
   const skipped = [];
@@ -63,17 +84,15 @@ export function reconcile(result, { listing = 'probe' } = {}) {
   const listingSkips = new Map();
 
   const noteListing = (ecosystem, directory) => {
-    const key = `${ecosystem}|${directory}`;
-    if (!listingSkips.has(key)) {
-      listingSkips.set(key, { check: 'listing', ecosystem, directory, reason: PAGE_SKIP_REASON });
+    const id = key(ecosystem, directory);
+    if (!listingSkips.has(id)) {
+      listingSkips.set(id, { check: 'listing', ecosystem, directory, reason: PAGE_SKIP_REASON });
     }
-    noteUncheckable(ecosystem, directory, PAGE_SKIP_REASON);
-  };
-
-  const noteUncheckable = (ecosystem, directory, reason) => {
     for (const group of groupsFor(result, ecosystem, directory)) {
-      const key = `${ecosystem}|${group}`;
-      if (!uncheckable.has(key)) uncheckable.set(key, { check: 'no-op-group', ecosystem, directory, group, reason });
+      const groupKey = `${ecosystem}|${group}`;
+      if (!uncheckable.has(groupKey)) {
+        uncheckable.set(groupKey, { check: 'no-op-group', ecosystem, directory, group, reason: PAGE_SKIP_REASON });
+      }
     }
   };
 
@@ -82,26 +101,63 @@ export function reconcile(result, { listing = 'probe' } = {}) {
       skipped.push(item);
       continue;
     }
-    // A dependency set this page could not fully enumerate means the groups in
-    // that entry were never evaluated. Saying nothing would let the verdict
-    // imply we looked, so the groups are counted as unchecked.
     if (LISTING_DEPENDENT.has(item.ecosystem)) {
+      // Reason from the collector is not shown: it can say "no workflow files"
+      // about a directory we never read.
       noteListing(item.ecosystem, item.directory);
       continue;
     }
     // Probe-provable and honest as printed: e.g. "no lockfile committed", which
     // is a statement about files we did fetch.
     skipped.push(item);
-    noteUncheckable(item.ecosystem, item.directory, item.reason);
+    for (const group of groupsFor(result, item.ecosystem, item.directory)) {
+      const groupKey = `${item.ecosystem}|${group}`;
+      if (!uncheckable.has(groupKey)) {
+        uncheckable.set(groupKey, {
+          check: 'no-op-group',
+          ecosystem: item.ecosystem,
+          directory: item.directory,
+          group,
+          reason: item.reason,
+        });
+      }
+    }
   }
 
-  for (const defect of dropped) noteListing(defect.ecosystem, defect.directory);
+  for (const entry of result.entries ?? []) {
+    if (LISTING_DEPENDENT.has(entry.ecosystem)) noteListing(entry.ecosystem, dirText(entry));
+  }
+  for (const defect of result.defects) {
+    if (LISTING_CODES.has(defect.code)) noteListing(defect.ecosystem, defect.directory);
+  }
 
   return {
     ...result,
     defects,
+    summary: resummarise(result.summary, defects),
     skipped: [...skipped, ...uncheckable.values(), ...listingSkips.values()],
   };
+}
+
+/** Summary counts must describe the defects that survived, not the ones dropped. */
+function resummarise(summary, defects) {
+  const count = (code) => defects.filter((defect) => defect.code === code).length;
+  return {
+    ...summary,
+    groups_empty: count('no-op-group'),
+    ignores_unmatched: count('ignore-no-match'),
+    directories_unmatched: count('directory-no-match'),
+    ecosystems_absent: count('ecosystem-absent'),
+    flood_risks: count('flood-risk'),
+  };
+}
+
+function dirText(entry) {
+  return Array.isArray(entry.directory) ? entry.directory.join(', ') : String(entry.directory ?? '/');
+}
+
+function key(ecosystem, directory) {
+  return `${ecosystem}|${String(directory ?? '').replace(/\s+/g, ' ').trim()}`;
 }
 
 /** Group names of the entries a skip line refers to. */
