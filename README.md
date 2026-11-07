@@ -30,7 +30,7 @@ Falsify it in two commands — no install, no account, nothing written:
 
 ```bash
 git clone --depth 1 https://github.com/Fastjur/dependabot-group-specificity-repro /tmp/repro
-npx --yes github:seipass/dependabot-doctor#v0.1.0 /tmp/repro
+npx --yes github:seipass/dependabot-doctor#v0.1.2 /tmp/repro
 ```
 
 `minor-and-patch-updates` declares no `patterns` at all, which scores **500**;
@@ -41,7 +41,7 @@ output does not change.
 ## Run it
 
 ```bash
-npx --yes github:seipass/dependabot-doctor#v0.1.0
+npx --yes github:seipass/dependabot-doctor#v0.1.2
 ```
 
 Run from the repository you want to check; it reads

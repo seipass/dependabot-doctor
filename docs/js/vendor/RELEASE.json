@@ -1,0 +1,110 @@
+{
+  "ref": "v0.1.0",
+  "commit": "4fd95d6842844d0976e4eede5f94724d9e540f70",
+  "tag_object": "2677f9bc8837304ec84a5a38154620a7ae8554aa",
+  "tree": "e23b484d27a876846f457886bc80a8ec576ef68e",
+  "subject": "dependabot-doctor 0.1.0",
+  "generated": "2026-11-07T04:34:21.362Z",
+  "note": "docs/js/vendor/ is a byte-identical mirror of this ref. Regenerate with tools/web/sync-vendor.mjs.",
+  "core_files": {
+    "core/analyze.js": {
+      "sha256": "8de035c25db501a4864388bf206739c8937dff81634a79212eeba047c9d36f99",
+      "bytes": 3969
+    },
+    "core/checks.js": {
+      "sha256": "1bfeb0a9468047fbcfb911972fb96453902aa756d23ea1dc1de325b4f15f6591",
+      "bytes": 25451
+    },
+    "core/config.js": {
+      "sha256": "d9138862a42e75939e24cd55816468f7c19b718475b5692fd8f8a8c54da768c0",
+      "bytes": 23870
+    },
+    "core/deps/actions.js": {
+      "sha256": "c40e9c6557363b12ae8aa78e5df54e3a0aa472b6df054462cb6414359aa6cada",
+      "bytes": 2692
+    },
+    "core/deps/cargo.js": {
+      "sha256": "ab86b8dc398c8f5bf4a684011a75af5211e9ee779ede752c57ebd89a54ae4dd1",
+      "bytes": 3112
+    },
+    "core/deps/docker.js": {
+      "sha256": "cf3843a877a02256960f819a02c76bf5260020ad00bc0b91f0473e5eb77e573e",
+      "bytes": 4415
+    },
+    "core/deps/gomod.js": {
+      "sha256": "ee9ad071e362cc8279697597f933fcee88ddc465d0db2e1bf77afb96b10c5791",
+      "bytes": 2170
+    },
+    "core/deps/index.js": {
+      "sha256": "1cf78bc7f099ed0a6f2c176efa33a455cad5ac6ebe1b54e344bc9b29d90e66cb",
+      "bytes": 7047
+    },
+    "core/deps/npm.js": {
+      "sha256": "4a6b833c41eb8532d7e36481d33f010846e6059ac57fa602b7ae3671cc797d47",
+      "bytes": 8426
+    },
+    "core/deps/python.js": {
+      "sha256": "0993f20e906a8a648e0af29407692bb9a7efc5e44f1a0d8a59dd72c77519f108",
+      "bytes": 8692
+    },
+    "core/deps/util.js": {
+      "sha256": "68cd3e258f465ce44163f010b54f080c1835be74b95b51806252251f7d814ef6",
+      "bytes": 2748
+    },
+    "core/glob.js": {
+      "sha256": "629ae406ddac6933713aad95b775e1af4952c8ac9ba81596955aef6404100891",
+      "bytes": 1729
+    },
+    "core/manifests.js": {
+      "sha256": "15685b8bd36a76644009fa8e603680111890e068b41773da5d358287878391af",
+      "bytes": 4396
+    },
+    "core/report/json.js": {
+      "sha256": "a885eb37b5c1f7860475d726297cb7e24f7e69a4429fa390ede1ca4698be2f0d",
+      "bytes": 1812
+    },
+    "core/report/patch.js": {
+      "sha256": "5841eafc0c85695cc3da5262af0663ecbe72a4d69774ab1569132556687363a0",
+      "bytes": 2494
+    },
+    "core/report/text.js": {
+      "sha256": "3c1d31be2fc8d51cd0cee39997e85032920716cec88704f574ae512744f3b289",
+      "bytes": 11718
+    },
+    "core/specificity.js": {
+      "sha256": "39d2ffe571d71317099ab68e15adbc6ca0a9375bcb4f06104c904935759f7ef0",
+      "bytes": 5048
+    },
+    "core/toml.js": {
+      "sha256": "ceae00a79b2184280c43c007165448f8ffe0674859d2fa18b60624c660d9abea",
+      "bytes": 9326
+    },
+    "core/wildcard.js": {
+      "sha256": "540b844bf5d362d4340850aad27634e484b8664568cbee2d1405229176f4739e",
+      "bytes": 1061
+    },
+    "core/yaml.js": {
+      "sha256": "27fd9c4f2bbba2ec5cf87b00e0d0dc5a4ae78a19027ad1b5ff94f05507ce6f1e",
+      "bytes": 18795
+    }
+  },
+  "demo": {
+    "repo": "Fastjur/dependabot-group-specificity-repro",
+    "sha": "c0f39dec5e2763707c6ff5abdb7f18d88383ea0f",
+    "taken": "2026-11-07",
+    "files": {
+      ".github/dependabot.yml": {
+        "sha256": "89fa85687fd8ac98954f26b6a43078b3cea8ae68925a6060c99a73dbf8ad4217",
+        "bytes": 417
+      },
+      "package.json": {
+        "sha256": "10707bbf56f195e17f7f5a509c0aca19aed1d0870d4c498d0f8ea330497f81cb",
+        "bytes": 194
+      },
+      "package-lock.json": {
+        "sha256": "2dba5679d17787d77ec5b1b4eed212d498e576839ce676412b15415395af756e",
+        "bytes": 58188
+      }
+    }
+  }
+}

@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dependabot-doctor — find dependabot.yml groups that match nothing</title>
+<meta name="description" content="Paste a public repo: see which dependabot.yml groups match no dependency, which matched and lost to a more specific group, and the one-line fix. Runs in your browser.">
+<link rel="canonical" href="https://seipass.github.io/dependabot-doctor/">
+<meta name="robots" content="index,follow">
+<meta name="referrer" content="no-referrer">
+<meta name="color-scheme" content="light">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23111827'/%3E%3Cpath d='M9 11h14M9 16h9M9 21h11' stroke='%23fff' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root {
+  --ink: #101418;
+  --muted: #5b6472;
+  --line: #dfe3ea;
+  --paper: #ffffff;
+  --wash: #f6f8fa;
+  --accent: #0b5cad;
+  --warn: #7a4b00;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+.wrap { max-width: 62rem; margin: 0 auto; padding: 0 1.25rem; }
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+a { color: var(--accent); }
+a:focus-visible, button:focus-visible, input:focus-visible, textarea:focus-visible, pre:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+
+.masthead {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 1rem;
+  padding: 1rem 0 0.5rem; border-bottom: 1px solid var(--line);
+}
+.brand { font-family: var(--mono); font-size: 0.95rem; font-weight: 600; text-decoration: none; color: var(--ink); }
+.masthead .repo-link { font-size: 0.9rem; }
+
+h1 {
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  margin: 1.6rem 0 0.7rem;
+  max-width: 30ch;
+}
+.sub { margin: 0 0 1.4rem; max-width: 74ch; color: #2b3138; }
+.sub q { color: var(--warn); }
+
+.checker { display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 0; }
+.checker input {
+  flex: 1 1 18rem; min-width: 0;
+  font: inherit; font-family: var(--mono);
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #b9c0cc; border-radius: 6px;
+}
+.checker input::placeholder { color: #8a93a1; }
+button {
+  font: inherit; font-weight: 600;
+  padding: 0.65rem 1.05rem;
+  color: #fff; background: var(--ink);
+  border: 1px solid var(--ink); border-radius: 6px;
+  cursor: pointer;
+}
+button[disabled] { opacity: 0.55; cursor: progress; }
+.hint { margin: 0.5rem 0 0; font-size: 0.9rem; color: var(--muted); }
+
+.paste { margin: 0.9rem 0 0; display: grid; gap: 0.5rem; }
+.paste label { font-family: var(--mono); font-size: 0.85rem; color: var(--muted); }
+.paste textarea {
+  width: 100%; font-family: var(--mono); font-size: 0.85rem; line-height: 1.45;
+  padding: 0.7rem 0.75rem; border: 1px solid #b9c0cc; border-radius: 6px;
+  resize: vertical; min-height: 9rem; background: var(--wash);
+}
+.paste button { justify-self: start; }
+
+.trust { margin: 1.15rem 0 0.35rem; max-width: 78ch; font-size: 0.94rem; }
+.fine { margin: 0 0 0.9rem; font-size: 0.85rem; color: var(--muted); }
+.example { margin: 0 0 1.1rem; font-size: 0.86rem; color: var(--muted); }
+.example a { color: var(--muted); }
+
+#banner {
+  border-left: 3px solid var(--warn);
+  background: #fff8ec;
+  padding: 0.6rem 0.8rem;
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+}
+#banner p { margin: 0; }
+
+#result { margin: 0.2rem 0 0; }
+.verdict {
+  font-size: clamp(1.25rem, 2.2vw, 1.6rem);
+  line-height: 1.3;
+  font-weight: 650;
+  margin: 0 0 0.35rem;
+  max-width: 34ch;
+}
+.count { margin: 0 0 1rem; color: var(--muted); font-size: 0.92rem; }
+.message { margin: 0.6rem 0 0; font-weight: 550; }
+pre {
+  font-family: var(--mono);
+  font-size: 0.79rem;
+  line-height: 1.45;
+  white-space: pre;
+  overflow-x: auto;
+  margin: 0.4rem 0 1rem;
+  padding: 0.8rem 0.9rem;
+  background: var(--wash);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  tab-size: 2;
+}
+pre.findings { font-size: 0.8rem; }
+h2.skips-title { font-size: 0.95rem; margin: 1.2rem 0 0; }
+
+.section { border-top: 1px solid var(--line); margin-top: 2.4rem; padding-top: 1.2rem; }
+.section h2 { font-size: 1.05rem; margin: 0 0 0.6rem; line-height: 1.35; }
+.section h2:not(:first-child) { margin-top: 1.6rem; }
+.section p, .section li { max-width: 74ch; font-size: 0.95rem; }
+.section ul { padding-left: 1.15rem; }
+.section li { margin: 0.3rem 0; }
+.section code { font-family: var(--mono); font-size: 0.88em; }
+.limits p:last-child { color: var(--muted); font-size: 0.9rem; }
+.star { margin-bottom: 1.6rem; font-size: 0.92rem; color: var(--muted); }
+footer { border-top: 1px solid var(--line); padding: 1rem 0 2rem; color: var(--muted); font-size: 0.82rem; }
+@media (max-width: 640px) {
+  .checker button { width: 100%; }
+  h1 { max-width: none; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <a class="brand" href="/dependabot-doctor/">dependabot-doctor</a>
+    <a class="repo-link" href="https://github.com/seipass/dependabot-doctor">Source</a>
+  </header>
+
+  <main id="top">
+    <h1>Find the groups in your dependabot.yml that match nothing</h1>
+
+    <p class="sub">If your update job logged <q>Please check your configuration as there are groups where no dependencies match</q> this page tells you which groups are dead — and which ones matched and still lost their dependencies to another group.</p>
+
+    <form id="repo-form" class="checker" action="#" novalidate>
+      <label class="sr-only" for="repo">Public GitHub repository</label>
+      <input id="repo" name="repo" type="text" inputmode="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="owner/repo" required>
+      <button id="check" type="submit">Check this repo</button>
+    </form>
+    <p class="hint">Public GitHub repo. Or <a id="paste-link" href="#paste" aria-expanded="false" aria-controls="paste-panel">paste your YAML instead →</a></p>
+
+    <form id="paste-panel" class="paste" action="#" hidden>
+      <label for="config">.github/dependabot.yml</label>
+      <textarea id="config" name="config" rows="10" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="version: 2&#10;updates:&#10;  - package-ecosystem: npm&#10;    directory: /"></textarea>
+      <button id="paste-check" type="submit">Check this YAML</button>
+    </form>
+
+    <p class="trust">Your config is never uploaded, and there is no account or token: this page reads public files from GitHub in your browser. If your config needs a directory listing, we make one API call, and we say so before we make it.</p>
+    <p class="fine">Nothing is stored. No sign-in.</p>
+
+    <p class="example"><a id="demo" href="#example">Example: Fastjur/dependabot-group-specificity-repro — the repro repo from dependabot-core #14576, deliberately tiny.</a></p>
+
+    <div id="banner" role="status" hidden></div>
+    <p id="status" class="sr-only" role="status" aria-live="polite"></p>
+    <section id="result" aria-live="polite"></section>
+  </main>
+
+  <section class="section limits">
+    <h2>What this cannot see</h2>
+    <ul>
+      <li>Whether an update is available, and its type (major/minor/patch) — we only read what is committed.</li>
+      <li>GitHub's behaviour inside the updater: we model the scoring in dependabot-core #13044. If Dependabot changes that scoring, we are wrong and this page is stale — check the commit date.</li>
+      <li>repos where the manifest is not committed (we mark those skipped rather than guess).</li>
+      <li>ecosystems outside the list this tool knows. That list is a subset — "not an ecosystem this tool knows" is not the same as "not valid", and if Dependabot supports one we do not, this tool is behind, not Dependabot.</li>
+    </ul>
+    <p>Modelled from dependabot-core upstream, pattern_specificity_calculator.rb, read 2026-11-07.</p>
+  </section>
+
+  <section class="section">
+    <h2>What this page sends, exactly</h2>
+    <ul>
+      <li>To <code>raw.githubusercontent.com</code>: one request for <code>.github/dependabot.yml</code>, then one request per manifest file your config names — for npm that is <code>package.json</code>, <code>package-lock.json</code>, <code>npm-shrinkwrap.json</code>, <code>yarn.lock</code> and <code>pnpm-lock.yaml</code>, in the directory your config declares.</li>
+      <li>To <code>api.github.com</code>: only when your config uses a directory glob such as <code>/packages/*</code>, one request for the file list. We tell you before we make it.</li>
+      <li>Every request asks for at most the first 1 MB of a file, so a large lockfile is reported rather than half-read.</li>
+      <li>No cookies, no token, no referrer, no analytics, no fonts, no images, no telemetry. This page and its scripts are served from <code>seipass.github.io</code>, and nothing else is contacted.</li>
+      <li>Your config and the findings live in this tab only. Closing it clears them.</li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <h2>Run it locally</h2>
+    <p><code>npx --yes github:seipass/dependabot-doctor#v0.1.0</code></p>
+  </section>
+
+  <section class="section">
+    <h2>Please check your configuration as there are groups where no dependencies match</h2>
+    <p>That warning is what Dependabot prints when a group it is about to evaluate matches no dependency. The group can be empty because its patterns match nothing, because <code>patterns</code> is present but empty, because an <code>ignore</code> rule removes every match, or because a higher-scoring group took the dependencies it did match. This page separates those cases and cites the line.</p>
+
+    <h2>dependabot groups not working</h2>
+    <p>Since September 2025 the updater scores each group against a dependency and gives it to the highest score, so a group written first is not the group that wins. A group with no <code>patterns</code> key at all scores 500 and takes pattern matches scoring below it.</p>
+
+    <h2>dependabot.yml ignore not working</h2>
+    <p>An ignore rule that matches no dependency is silent: it blocks nothing and Dependabot does not warn about it. The finding names the rule's line and the number of dependencies the rule was compared against.</p>
+
+    <h2>If a dependency matches more than one rule, it's included in the first group that it matches</h2>
+    <p>The docs say this, and since Sept 2025 the updater does something else: it scores patterns and the highest score wins.</p>
+  </section>
+
+  <p class="star">If this saved you a debugging session, a star helps the next person find it. <a href="https://github.com/seipass/dependabot-doctor">github.com/seipass/dependabot-doctor</a></p>
+
+  <footer>
+    dependabot-doctor 0.1.0 · MIT · checks run in your browser against the released core
+  </footer>
+</div>
+<script type="module" src="./js/app.js"></script>
+</body>
+</html>
