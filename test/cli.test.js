@@ -52,7 +52,7 @@ updates:
   try {
     const result = run([fixture.root]);
     assert.equal(result.status, 0, result.stdout + result.stderr);
-    assert.match(result.stdout, /matches at least one dependency/);
+    assert.match(result.stdout, /Nothing in your dependabot\.yml is dead/);
     assert.match(result.stdout, /Read 3 files\./);
   } finally {
     fixture.cleanup();

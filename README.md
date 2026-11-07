@@ -1,47 +1,46 @@
-# Dependabot groups not working? Why a group matches nothing (and how to check yours)
+# Dependabot config not working? Find the entries in your dependabot.yml that don't apply
 
-When Dependabot silently stops grouping, the only thing it tells you is one line
-in an update-job log:
+If your update job logged `Please check your configuration as there are groups where no dependencies match`, this page tells you which entries in the file cannot do anything - and why.
 
-> Please check your configuration as there are groups where no dependencies match:
+In 250 popular repositories (234 scorable), **33 had at least one finding - 14.1%.** What we found:
 
-This finds that — and the case the log does not describe: a group that **did**
-match, and lost its dependencies to a higher-scoring group. Offline, in one
-command, without a token.
+| finding | count |
+|---|---|
+| ecosystems declared with no manifest | 36 |
+| ignore rules matching nothing | 18 |
+| flood-risk (daily schedule, capped PRs) | 8 |
+| directories matching nothing | 4 |
+| groups matching nothing | 2 |
+| matched-then-captured | 0 |
 
-## What it looks like
-
-Example: [`Fastjur/dependabot-group-specificity-repro`](https://github.com/Fastjur/dependabot-group-specificity-repro)
-— the repro repo from [dependabot-core #14576](https://github.com/dependabot/dependabot-core/issues/14576),
-deliberately tiny. Real output, pasted from a run pinned at `c0f39de`:
-
-```
-1 group matched, but lost its dependency to a higher-scoring group.
-Checked 1 npm manifest. Read 3 files.
-
-aws                       1 of 2 direct dependencies matched, then lost
-                          to minor-and-patch-updates              dependabot.yml:9
-  @aws-sdk/client-dynamodb matches @aws-sdk/* (scores 95) and was assigned to
-  minor-and-patch-updates, which declares no patterns (scores 500).
-  Applies to minor and patch updates.
-```
-
-Falsify it in two commands — no install, no account, nothing written:
+Example: `twbs/bootstrap` - **eight** ignore rules that match none of its 1,026 dependencies. Ignore rules matching nothing appeared in 18 of 234 repos we sampled. Verify this one yourself:
 
 ```bash
-git clone --depth 1 https://github.com/Fastjur/dependabot-group-specificity-repro /tmp/repro
-npx --yes github:seipass/dependabot-doctor#v0.1.2 /tmp/repro
+grep '"@babel/cli"' package-lock.json   # no output: nothing in the lockfile matches
 ```
 
-`minor-and-patch-updates` declares no `patterns` at all, which scores **500**;
-`@aws-sdk/*` scores **95**; the highest score wins, so `aws` is left with
-nothing even though it is written first. Swap the two groups in the file and the
-output does not change.
+Real output, run against that repository:
+
+```
+1 entry in your dependabot.yml doesn't apply to this repo.
+Checked 14 github-actions workflows and 1 npm manifest. Read 17 files.
+
+@babel/cli                matches 0 of 66 direct dependencies, so it
+                          blocks nothing                         dependabot.yml:98
+  patterns: [@babel/cli] matched nothing in 1026 enumerated dependencies, so
+  this rule blocks no update.
+```
+
+Run it in one command:
+
+```bash
+npx --yes github:seipass/dependabot-doctor#v0.1.3
+```
 
 ## Run it
 
 ```bash
-npx --yes github:seipass/dependabot-doctor#v0.1.2
+npx --yes github:seipass/dependabot-doctor#v0.1.3
 ```
 
 Run from the repository you want to check; it reads
@@ -56,14 +55,14 @@ Other ways in:
 node bin/dependabot-doctor.js /path/to/repo
 
 # a GitHub Actions step
-- uses: seipass/dependabot-doctor@v0.1.0
+- uses: seipass/dependabot-doctor@v0.1.3
   with:
     path: .
     fail-on: all
 
 # pre-commit
 - repo: https://github.com/seipass/dependabot-doctor
-  rev: v0.1.0
+  rev: v0.1.3
   hooks:
     - id: dependabot-doctor
 ```
@@ -121,6 +120,12 @@ Our model of this is in `core/specificity.js`, ported constant-for-constant, and
 `test/precedence.test.js` fails if membership ever becomes order-dependent.
 
 ## `dependabot groups not working`
+
+If your problem is a group rather than an entry, the mechanism is a score, not an
+order - and it is rare: **0 of 234 repos we sampled** had a group that matched
+and lost its dependencies. The clearest explanation is
+[`Fastjur/dependabot-group-specificity-repro`](https://github.com/Fastjur/dependabot-group-specificity-repro),
+the repro repo from dependabot-core #14576, deliberately tiny.
 
 Two different bugs hide behind that search, and they need opposite fixes:
 
@@ -189,7 +194,7 @@ and only the first is visible to this tool:
 
 ```jsonc
 {
-  "version": "0.1.0",
+  "version": "0.1.3",
   "root": "C:/repos/x",
   "file": ".github/dependabot.yml",
   "ok": true,

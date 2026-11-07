@@ -603,3 +603,90 @@ updates:
   assert.deepEqual(result.defects, [], 'a half-read lockfile must never produce a no-op-group');
   assert.ok(result.skipped.some((item) => /lockfileVersion|duplicate/.test(item.reason)), JSON.stringify(result.skipped));
 });
+
+test('verdict: dead entries are counted by entry, flood-risk is excluded', async () => {
+  const deps = Object.fromEntries(Array.from({ length: 25 }, (_, i) => [`pkg-${i}`, '^1']));
+  const files = {
+    'package.json': { dependencies: deps },
+    'package-lock.json': NPM_LOCK(Object.keys(deps)),
+    Dockerfile: 'FROM node:20' + String.fromCharCode(10),
+  };
+  const result = await runAsync(
+    `version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: daily
+    ignore:
+      - dependency-name: "typo-one"
+      - dependency-name: "typo-two"
+`,
+    files,
+  );
+  const { renderText } = await import('../core/report/text.js');
+  const text = renderText(result, {});
+  assert.match(text, /^1 entry in your dependabot\.yml doesn't apply to this repo\.$/m);
+  assert.match(text, /One more entry applies, but will do too much/);
+  assert.doesNotMatch(text, /^2 entries/m, 'two dead rules in one entry are one entry');
+});
+
+test('verdict: a clean config gets the verified sentence, and a skipped one does not', async () => {
+  const { renderText } = await import('../core/report/text.js');
+  const complete = await runAsync(
+    `version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+`,
+    { 'package.json': { dependencies: { react: '^18' } }, 'package-lock.json': NPM_LOCK(['react']) },
+  );
+  assert.match(renderText(complete, {}), /^Nothing in your dependabot\.yml is dead\. We checked 1 entry against 1 manifest\.$/m);
+
+  const incomplete = await runAsync(
+    `version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+`,
+    { 'package.json': { dependencies: { react: '^18' } } },
+  );
+  const text = renderText(incomplete, {});
+  assert.doesNotMatch(text, /Nothing in your dependabot\.yml is dead/, 'clean sentence requires an enumerated manifest');
+  assert.match(text, /^We couldn't check 1 entry\.$/m);
+});
+
+test('findings are ordered by measured frequency, then by line', async () => {
+  const { renderText } = await import('../core/report/text.js');
+  const result = await runAsync(
+    `version: 2
+updates:
+  - package-ecosystem: docker
+    directory: "/gone"
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      nobody:
+        patterns: ["nope*"]
+    ignore:
+      - dependency-name: "also-nope"
+`,
+    { 'package.json': { dependencies: { react: '^18' } }, 'package-lock.json': NPM_LOCK(['react']) },
+  );
+  const text = renderText(result, {});
+  const codes = result.defects.map((defect) => defect.code);
+  assert.ok(codes.includes('directory-no-match') && codes.includes('no-op-group') && codes.includes('ignore-no-match'));
+  const positions = ['ignore-no-match', 'directory-no-match', 'no-op-group'].map((code) => {
+    const defect = result.defects.find((item) => item.code === code);
+    return text.indexOf(defect.target);
+  });
+  assert.ok(positions[0] < positions[1] && positions[1] < positions[2], 'ignore before directory before group');
+});

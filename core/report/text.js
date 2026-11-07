@@ -50,77 +50,99 @@ export function renderText(result, options = {}) {
   return lines.join('\n');
 }
 
+/**
+ * Fixed order by measured frequency, not severity or alphabet:
+ * ecosystem-absent (36), ignore-no-match (18), directory-no-match (4),
+ * no-op-group (2), captured-by-score (0), then flood-risk (an entry that
+ * applies and does too much), then source line inside a class.
+ */
+const CODE_ORDER = [
+  'ecosystem-absent',
+  'ignore-no-match',
+  'directory-no-match',
+  'no-op-group',
+  'captured-by-score',
+  'flood-risk',
+];
+
 function sortDefects(defects) {
-  const order = [
-    'ecosystem-absent',
-    'directory-no-match',
-    'no-op-group',
-    'captured-by-score',
-    'ignore-no-match',
-    'flood-risk',
-  ];
   return [...defects].sort((a, b) => {
-    const byLine = (a.yml_line ?? 0) - (b.yml_line ?? 0);
-    if (byLine !== 0) return byLine;
-    return order.indexOf(a.code) - order.indexOf(b.code);
+    const rank = CODE_ORDER.indexOf(a.code) - CODE_ORDER.indexOf(b.code);
+    if (rank !== 0) return rank;
+    return (a.yml_line ?? 0) - (b.yml_line ?? 0);
   });
 }
 
+/**
+ * Codes that mean "this part of the config can never do anything".
+ * `flood-risk` is deliberately absent: an entry that opens too many pull
+ * requests does apply, so counting it here would make the sentence lie about
+ * its own arithmetic.
+ */
+const DEAD_CODES = ['ecosystem-absent', 'ignore-no-match', 'directory-no-match', 'no-op-group', 'captured-by-score'];
+
+/** One update entry, keyed the way findings are attributed. */
+function entryKey(defect) {
+  return defect.ecosystem + '::' + defect.directory;
+}
+
 function verdictLines(result) {
-  const { summary } = result;
   const out = [];
-  const empty = summary.groups_empty;
-  const captured = result.defects.filter((defect) => defect.code === 'captured-by-score').length;
-  const groups = summary.groups_total;
-  const uncheckable = new Set(
-    result.skipped.filter((item) => item.check === 'no-op-group').map((item) => item.group ?? item.reason),
+  const defects = result.defects.filter((defect) => defect.severity !== 'info');
+  const dead = defects.filter((defect) => DEAD_CODES.includes(defect.code));
+  const deadEntries = new Set(dead.map(entryKey)).size;
+  const captureEntries = new Set(dead.filter((defect) => defect.code === 'captured-by-score').map(entryKey)).size;
+  const capturesOnly = dead.length > 0 && dead.every((defect) => defect.code === 'captured-by-score');
+  const skippedEntries = new Set(
+    result.skipped
+      .filter((item) => item.check === 'dependency-set')
+      .map((item) => item.ecosystem + '::' + item.directory),
   ).size;
 
-  if (empty > 0) {
+  if (deadEntries > 0 && !capturesOnly) {
     out.push(
-      empty === 1
-        ? `1 of your ${groups} groups match nothing.`
-        : `${empty} of your ${groups} groups match nothing.`,
+      deadEntries +
+        ' entr' +
+        (deadEntries === 1 ? 'y' : 'ies') +
+        ' in your dependabot.yml ' +
+        (deadEntries === 1 ? "doesn't" : "don't") +
+        ' apply to this repo.',
     );
-  }
-  if (captured > 0) {
+  } else if (capturesOnly) {
     out.push(
-      captured === 1
-        ? '1 group matched, but lost its dependency to a higher-scoring group.'
-        : `${captured} groups matched, but lost their dependencies to a higher-scoring group.`,
+      captureEntries === 1
+        ? '1 entry matched, but lost its dependency to a higher-scoring group.'
+        : captureEntries + ' entries matched, but lost their dependencies to a higher-scoring group.',
     );
-  }
-  if (empty === 0 && captured === 0 && groups > 0) {
+  } else if (skippedEntries === 0 && result.entries.length > 0) {
+    // Only verified when every entry's dependency set was actually enumerated.
+    const manifests = Object.values(result.manifests ?? {}).reduce((sum, value) => sum + value, 0);
     out.push(
-      groups === 1
-        ? 'Your 1 group matches at least one dependency.'
-        : `All ${groups} of your groups match at least one dependency.`,
+      'Nothing in your dependabot.yml is dead. We checked ' +
+        result.entries.length +
+        ' entr' +
+        (result.entries.length === 1 ? 'y' : 'ies') +
+        ' against ' +
+        manifests +
+        ' manifest' +
+        (manifests === 1 ? '' : 's') +
+        '.',
     );
-  }
-  if (groups === 0 && result.defects.length === 0) {
-    out.push('No groups in this config, so there is no grouping to check.');
-  }
-  if (uncheckable > 0) {
-    out.push(uncheckable === 1 ? "We couldn't check 1 group." : `We couldn't check ${uncheckable} groups.`);
   }
 
-  const others = result.defects.filter(
-    (defect) => !['no-op-group', 'captured-by-score'].includes(defect.code) && defect.severity !== 'info',
-  );
-  if (others.length > 0) {
-    const parts = [];
-    for (const code of ['ignore-no-match', 'directory-no-match', 'ecosystem-absent']) {
-      const count = others.filter((defect) => defect.code === code).length;
-      if (count === 0) continue;
-      const phrase =
-        code === 'ignore-no-match'
-          ? `ignore rule${count === 1 ? '' : 's'} that ${count === 1 ? 'matches' : 'match'} nothing`
-          : code === 'directory-no-match'
-            ? `director${count === 1 ? 'y' : 'ies'} not found`
-            : `ecosystem${count === 1 ? '' : 's'} with no manifest`;
-      parts.push(`${count} ${phrase}`);
-    }
-    if (parts.length > 0) out.push(`Also: ${parts.join(', ')}.`);
+  if (skippedEntries > 0) {
+    out.push(skippedEntries === 1 ? "We couldn't check 1 entry." : 'We couldn\'t check ' + skippedEntries + ' entries.');
+  }
+
+  // flood-risk is informational, so it is not in `defects` above; it is
+  // reported separately and deliberately excluded from the verdict count.
+  const floods = result.defects.filter((defect) => defect.code === 'flood-risk');
+  if (floods.length > 0) {
+    out.push(
+      floods.length === 1
+        ? 'One more entry applies, but will do too much (listed below, not counted above).'
+        : floods.length + ' more entries apply, but will do too much (listed below, not counted above).',
+    );
   }
   return out;
 }

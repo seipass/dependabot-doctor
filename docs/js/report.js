@@ -47,25 +47,47 @@ export function buildReport(result) {
     .join('\n\n')
     .trim();
 
+  const cleanState = isClean(verdict);
+
   return {
     kind: 'findings',
-    verdict,
-    count: countLine,
+    // In the clean state, page-copy.md §4 is the verdict: it already carries the
+    // counts, so printing the engine's clean sentence and the count line as well
+    // would say the same thing three times. See the note in cleanHeadline().
+    verdict: cleanState ? [cleanHeadline(result)] : verdict,
+    count: cleanState ? '' : countLine,
     findings,
     // A clean result is a result, not an absence: it names the files the check
     // actually opened, so "nothing found" cannot be mistaken for "nothing done".
-    clean: isClean(verdict) ? CLEAN_COPY : null,
-    read: isClean(verdict) ? readLine(result) : '',
+    clean: cleanState ? CLEAN_PARAGRAPH : null,
+    read: cleanState ? readLine(result) : '',
     skips: skipLines(result.skipped),
   };
 }
 
 /**
  * page-copy.md §4, verbatim. The reader who most needs this page is the one
- * whose config is fine, and a bare "no findings" reads as a broken tool.
+ * whose config is fine, and a bare "no findings" reads as a broken tool — 86%
+ * of visitors land here, so "clean" has to be a result rather than an absence.
+ *
+ * The engine's own clean sentence ("All N of your groups match at least one
+ * dependency.") and its count line are not printed in this state: §4 already
+ * carries the same counts, and three statements of one fact reads like a tool
+ * padding its output. This is the one place the page's wording supersedes the
+ * renderer's, and the string is Strategy's, not mine.
  */
-const CLEAN_COPY =
-  'Nothing to fix. What this does not tell you: whether those groups fire on the next run — that depends on which updates are available and on update types we cannot see offline.';
+function cleanHeadline(result) {
+  const entries = result.summary?.entries ?? 0;
+  const manifests = Object.values(result.manifests ?? {}).reduce((sum, value) => sum + value, 0);
+  return `Nothing in your dependabot.yml is dead. We checked ${count(entries, 'entry', 'entries')} against ${count(manifests, 'manifest', 'manifests')}.`;
+}
+
+const CLEAN_PARAGRAPH =
+  'That is the normal result: on a sweep of 234 real repositories, 14% had any finding at all. What this cannot tell you is whether your entries fire on the next run — that depends on which updates are available, which we cannot see offline.';
+
+function count(value, one, many) {
+  return `${value} ${value === 1 ? one : many}`;
+}
 
 /** The engine's own clean verdict, i.e. every group was evaluated and matched. */
 function isClean(verdict) {
@@ -92,7 +114,6 @@ function readLine(result) {
 function joinList(items) {
   if (items.length === 1) return items[0];
   return `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`;
-}
 }
 
 /**
