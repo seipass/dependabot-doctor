@@ -290,8 +290,9 @@ function groupDefect(entry, group, why, matching, _winners, counts) {
     return {
       ...base,
       detail: `group "${group.name}" is empty: ${universe} match its rules (${rule})`,
-      suggestion:
-        'Delete the group, or widen its patterns. Dependabot\'s only signal for this is a WARN line in the update-job log.',
+      suggestion: group.dependencyType
+        ? 'Remove or widen the dependency-type rule, or delete the group: the type filter is what excludes every match here, so a wider pattern cannot help.'
+        : "Delete the group, or widen its patterns. Dependabot's only signal for this is a WARN line in the update-job log.",
     };
   }
   if (why === 'allow-excluded') {

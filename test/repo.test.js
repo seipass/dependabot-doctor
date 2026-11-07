@@ -20,6 +20,8 @@ function walk(directory, out = []) {
   for (const entry of readdirSync(directory, { withFileTypes: true })) {
     if (entry.isDirectory()) {
       if (SKIP_DIRS.has(entry.name)) continue;
+      // the gate materialises real repositories here; they are not our sources
+      if (relative(root, join(directory, entry.name)).replace(/\\/g, '/').startsWith('tools/gate')) continue;
       walk(join(directory, entry.name), out);
     } else if (entry.isFile()) {
       out.push(join(directory, entry.name));

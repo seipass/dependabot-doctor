@@ -4,4 +4,5 @@ node_modules/
 tools/gate/cache/
 tools/gate/repos.json
 tools/gate/results.json
+tools/gate/*.log
 out.json

@@ -130,7 +130,7 @@ const results = await pool(repos, concurrency, async (repo) => {
   const manifestFile = join(dir, '.gate-manifest.json');
   if (existsSync(manifestFile) && !refresh) {
     const saved = JSON.parse(readFileSync(manifestFile, 'utf8'));
-    return runOne(repo, dir, saved);
+    if (Array.isArray(saved.paths)) return runOne(repo, dir, saved);
   }
   if (existsSync(dir)) rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
@@ -153,7 +153,7 @@ const results = await pool(repos, concurrency, async (repo) => {
     writeFileSync(absolute, text, 'utf8');
     files.push(path);
   }
-  const saved = { sha, truncated: Boolean(tree.truncated), tree_size: paths.length, files };
+  const saved = { sha, truncated: Boolean(tree.truncated), tree_size: paths.length, paths, files };
   writeFileSync(manifestFile, JSON.stringify(saved));
   return runOne(repo, dir, saved);
 });
@@ -162,8 +162,15 @@ function runOne(repo, dir, meta) {
   const configPath = ['.github/dependabot.yml', '.github/dependabot.yaml'].find((name) => existsSync(join(dir, name)));
   if (!configPath) return { repo: repo.full_name, stars: repo.stars, error: 'config missing after fetch' };
   const configText = readFileSync(join(dir, configPath), 'utf8');
+  // The checkout holds only the files we chose to fetch; hand the CLI the real
+  // tree so directory/ecosystem checks see the repository as it is.
+  const treeFile = `${dir}.tree.json`;
+  writeFileSync(treeFile, JSON.stringify({ paths: meta.paths ?? [] }));
   const started = Date.now();
-  const result = spawnSync(process.execPath, [bin, dir, '--json', '--no-color'], { encoding: 'utf8', timeout: 60000 });
+  const result = spawnSync(process.execPath, [bin, dir, '--json', '--no-color', '--tree', treeFile], {
+    encoding: 'utf8',
+    timeout: 60000,
+  });
   const durationMs = Date.now() - started;
   let payload = null;
   try {

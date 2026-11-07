@@ -9,6 +9,24 @@ import { analyze, VERSION } from '../core/analyze.js';
 import { serialize, exitCodeFor } from '../core/report/json.js';
 import { renderText } from '../core/report/text.js';
 import { scanTree } from './fs.js';
+import { deriveDirectories } from '../core/deps/index.js';
+
+/** Read a `--tree` file: JSON {paths:[...]}, {"tree":[...]}, or one path per line. */
+function readTreeFile(file) {
+  const text = readFileSync(file, 'utf8');
+  const trimmed = text.trim();
+  if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+    const data = JSON.parse(trimmed);
+    const paths = Array.isArray(data) ? data : data.paths ?? data.tree ?? data.files;
+    if (!Array.isArray(paths)) throw new Error('no paths array');
+    return paths.map((path) => String(path).replace(/^\//, '')).filter(Boolean);
+  }
+  const lineSeparator = new RegExp(String.fromCharCode(13) + '?' + String.fromCharCode(10));
+  return trimmed
+    .split(lineSeparator)
+    .map((line) => line.trim().replace(/^\//, ''))
+    .filter(Boolean);
+}
 
 const USAGE = `dependabot-doctor ${VERSION}
 Find groups, ignore rules and directory globs in .github/dependabot.yml that
@@ -22,6 +40,9 @@ Usage
 Options
   --config <file>         config to lint (default: <path>/.github/dependabot.yml;
                           "-" reads the config from stdin)
+  --tree <file>           authoritative file list for the checkout (JSON {paths:[...]}
+                          or one path per line). Use it when <path> holds only some
+                          of the repository's files, e.g. a sparse fetch.
   --json                  machine-readable output
   --fail-on <codes>       comma-separated defect codes that fail the run
                           (default: all = every error/warning; "none" never fails)
@@ -48,6 +69,7 @@ export function main(argv = process.argv.slice(2)) {
   const options = {
     path: '.',
     config: null,
+    tree: null,
     json: false,
     failOn: 'all',
     color: Boolean(process.stdout.isTTY) && !process.env.NO_COLOR,
@@ -99,6 +121,19 @@ export function main(argv = process.argv.slice(2)) {
       options.config = arg.slice('--config='.length);
       continue;
     }
+    if (arg === '--tree') {
+      options.tree = argv[i + 1];
+      i += 1;
+      if (!options.tree) {
+        process.stderr.write('error: --tree needs a file path' + String.fromCharCode(10));
+        return 1;
+      }
+      continue;
+    }
+    if (arg.startsWith('--tree=')) {
+      options.tree = arg.slice('--tree='.length);
+      continue;
+    }
     if (arg === '--fail-on') {
       options.failOn = argv[i + 1] ?? 'all';
       i += 1;
@@ -142,6 +177,17 @@ export function main(argv = process.argv.slice(2)) {
   }
 
   const tree = scanTree(root);
+  // A supplied file list wins: a sparse checkout would otherwise make
+  // directory and ecosystem checks accuse a working config.
+  if (options.tree) {
+    try {
+      tree.filePaths = readTreeFile(options.tree);
+      tree.directories = deriveDirectories(tree.filePaths);
+    } catch (error) {
+      process.stderr.write(`error: cannot read --tree ${options.tree}: ${error.message}` + String.fromCharCode(10));
+      return 1;
+    }
+  }
   const view = {
     root,
     directories: tree.directories,
