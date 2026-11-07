@@ -584,3 +584,22 @@ updates:
   });
   assert.deepEqual(result.defects, []);
 });
+
+test('a concatenated pnpm lockfile is refused, not half-read (docusaurus shape)', async () => {
+  const pnpmLock = ['---', "lockfileVersion: '9.0'", '', 'importers:', '  .:', '    dependencies:', '      left-pad:', '        specifier: 1.0.0', '', 'packages:', "  left-pad@1.0.0:", '    resolution: {integrity: sha512-x}', '', '---', "lockfileVersion: '9.0'", '', 'importers:', '  .:', '    dependencies:', '      lodash:', '        specifier: 4.17.21', ''].join(String.fromCharCode(10));
+  const result = await runAsync(
+    `version: 2
+updates:
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      react:
+        patterns: ["lodash"]
+`,
+    { 'package.json': { dependencies: { lodash: '^4' } }, 'pnpm-lock.yaml': pnpmLock },
+  );
+  assert.deepEqual(result.defects, [], 'a half-read lockfile must never produce a no-op-group');
+  assert.ok(result.skipped.some((item) => /lockfileVersion|duplicate/.test(item.reason)), JSON.stringify(result.skipped));
+});

@@ -195,7 +195,16 @@ export function packageNameFromDescriptor(descriptor) {
  * "@scope/pkg@1.2.3(react@18.0.0)".
  */
 export function parsePnpmLock(text) {
+  // A merged or concatenated lockfile (two documents, or the same top-level key
+  // twice) parses into a truncated dependency set. Silently treating that as
+  // "complete" would make every group look empty, so refuse it instead.
+  const lineSeparator = new RegExp(String.fromCharCode(13) + '?' + String.fromCharCode(10));
+  const versionLines = text.split(lineSeparator).filter((line) => /^lockfileVersion:/.test(line)).length;
+  if (versionLines > 1) throw new Error(`${versionLines} lockfileVersion headers (concatenated lockfile?)`);
   const data = parseYaml(text);
+  if (data.duplicateKeys && data.duplicateKeys.length > 0) {
+    throw new Error(`duplicate top-level keys: ${data.duplicateKeys.join(', ')}`);
+  }
   const names = new Set();
   const importerRoot = findKey(data, 'importers');
   if (importerRoot && importerRoot.type === 'map') {
