@@ -114,7 +114,10 @@ function verdictLines(result) {
         ? '1 entry matched, but lost its dependency to a higher-scoring group.'
         : captureEntries + ' entries matched, but lost their dependencies to a higher-scoring group.',
     );
-  } else if (skippedEntries === 0 && result.entries.length > 0) {
+  } else if (result.skipped.length === 0 && result.entries.length > 0) {
+    // Verified only when nothing was skipped at all - a skip one layer down
+    // (listing unavailable, unsupported ecosystem, group not modelled) also
+    // means we did not look, so "nothing is dead" would overclaim.
     // Only verified when every entry's dependency set was actually enumerated.
     const manifests = Object.values(result.manifests ?? {}).reduce((sum, value) => sum + value, 0);
     out.push(
@@ -127,6 +130,14 @@ function verdictLines(result) {
         ' manifest' +
         (manifests === 1 ? '' : 's') +
         '.',
+    );
+  }
+
+  const otherSkips = result.skipped.filter((item) => item.check !== 'dependency-set');
+  if (otherSkips.length > 0) {
+    const checks = [...new Set(otherSkips.map((item) => item.check))];
+    out.push(
+      `Also, ${checks.join(', ')} did not run${otherSkips.length === 1 ? '' : ` for ${otherSkips.length} entries`} - see "Not checked".`,
     );
   }
 

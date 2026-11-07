@@ -31,6 +31,14 @@ const docs = join(root, 'docs');
 const vendor = join(docs, 'js', 'vendor');
 const release = JSON.parse(readFileSync(join(vendor, 'RELEASE.json'), 'utf8'));
 const sha256 = (buffer) => createHash('sha256').update(buffer).digest('hex');
+// Fail closed in a release job: if RELEASE.json names a different tag than the one
+// being cut, every byte comparison below would validate the wrong referent.
+test('the mirror records the tag being released', () => {
+  const tag = process.env.GITHUB_REF_NAME;
+  if (!tag || !/^vd/.test(tag)) return; // not a release job
+  assert.equal(release.ref, tag, 'RELEASE.json says ' + release.ref + ' but this job is cutting ' + tag);
+});
+
 
 const hasGit = () => {
   try {
@@ -55,7 +63,18 @@ test('mirror matches the release record it was built from', () => {
   assert.deepEqual(onDisk.sort(), Object.keys(release.core_files).sort());
 });
 
-test('mirror matches the tag, not the working tree', { skip: !hasGit() && 'git not available' }, () => {
+test('mirror matches the tag, not the working tree', { skip: !hasGit() && 'git not available' }, (t) => {
+  // The tag may not exist yet on the commit that becomes the release. That is
+  // fine on a branch; in a release job it is a hard failure, because then no
+  // byte comparison below has a referent.
+  try {
+    execFileSync('git', ['rev-parse', '--verify', 'refs/tags/' + release.ref], { cwd: root, stdio: 'ignore' });
+  } catch {
+    if (process.env.GITHUB_REF_NAME) assert.fail('release job for ' + process.env.GITHUB_REF_NAME + ' but ' + release.ref + ' is not tagged');
+    t.skip(release.ref + ' is not tagged yet');
+    return;
+  }
+
   for (const path of Object.keys(release.core_files)) {
     const tagged = execFileSync('git', ['show', `${release.ref}:${path}`], { cwd: root, encoding: 'buffer' });
     assert.equal(
