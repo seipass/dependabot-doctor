@@ -1,0 +1,76 @@
+name: dependabot-doctor
+description: Find groups, ignore rules and directory globs in .github/dependabot.yml that match nothing.
+author: seipass
+branding:
+  icon: check-circle
+  color: purple
+
+inputs:
+  path:
+    description: Repository or subdirectory to inspect.
+    required: false
+    default: '.'
+  config:
+    description: Explicit path to a dependabot.yml (defaults to <path>/.github/dependabot.yml).
+    required: false
+    default: ''
+  fail-on:
+    description: Comma-separated defect codes that fail the step ("all" = every error/warning, "none" = never fail).
+    required: false
+    default: 'all'
+  json:
+    description: 'Write the machine-readable report to $RUNNER_TEMP/dependabot-doctor.json and expose its path as an output.'
+    required: false
+    default: 'true'
+
+outputs:
+  findings:
+    description: Number of defects reported.
+    value: ${{ steps.run.outputs.findings }}
+  report:
+    description: Path to the JSON report (empty when json is false).
+    value: ${{ steps.run.outputs.report }}
+
+runs:
+  using: composite
+  steps:
+    - id: run
+      shell: bash
+      env:
+        DD_PATH: ${{ inputs.path }}
+        DD_CONFIG: ${{ inputs.config }}
+        DD_FAIL_ON: ${{ inputs.fail-on }}
+        DD_JSON: ${{ inputs.json }}
+      run: |
+        set -uo pipefail
+        # $GITHUB_ACTION_PATH is the checked-out action; run the committed bin
+        # directly so the step needs no install and no network.
+        BIN="$GITHUB_ACTION_PATH/bin/dependabot-doctor.js"
+
+        args=("$DD_PATH" "--fail-on" "$DD_FAIL_ON" "--no-color")
+        if [ -n "${DD_CONFIG:-}" ]; then
+          args+=("--config" "$DD_CONFIG")
+        fi
+
+        set +e
+        json="$(node "$BIN" "${args[@]}" --json)"
+        status=$?
+        set -e
+
+        printf '%s\n' "$json" > "${RUNNER_TEMP:-/tmp}/dependabot-doctor.json"
+        count="$(node -e 'const fs=require("fs");const p=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));console.log(p.defects.length)' "${RUNNER_TEMP:-/tmp}/dependabot-doctor.json" 2>/dev/null || echo 0)"
+
+        echo "findings=$count" >> "${GITHUB_OUTPUT:-/dev/null}"
+        if [ "$DD_JSON" = "true" ]; then
+          echo "report=${RUNNER_TEMP:-/tmp}/dependabot-doctor.json" >> "${GITHUB_OUTPUT:-/dev/null}"
+        fi
+
+        {
+          echo "### dependabot-doctor"
+          echo ""
+          echo "\`\`\`"
+          node "$BIN" "${args[@]}"
+          echo "\`\`\`"
+        } >> "${GITHUB_STEP_SUMMARY:-/dev/null}"
+
+        exit "$status"

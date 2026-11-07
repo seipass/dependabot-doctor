@@ -1,0 +1,54 @@
+{
+  "name": "dependabot-doctor",
+  "version": "0.1.0",
+  "description": "Offline linter for .github/dependabot.yml — find groups, ignore rules and directory globs that silently match nothing.",
+  "keywords": [
+    "dependabot",
+    "github-actions",
+    "linter",
+    "supply-chain",
+    "security",
+    "devops",
+    "cli",
+    "nodejs"
+  ],
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "bin": {
+    "dependabot-doctor": "bin/dependabot-doctor.js"
+  },
+  "exports": {
+    ".": "./core/analyze.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "bin",
+    "cli",
+    "core",
+    "web",
+    "dependabot-doctor.mjs",
+    "action.yml",
+    ".pre-commit-hooks.yaml",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "check": "node bin/dependabot-doctor.js . && node bin/dependabot-doctor.js . --json > /dev/null",
+    "build": "node tools/build.mjs",
+    "gate": "node tools/gate/run.mjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/seipass/dependabot-doctor.git"
+  },
+  "bugs": {
+    "url": "https://github.com/seipass/dependabot-doctor/issues"
+  },
+  "homepage": "https://github.com/seipass/dependabot-doctor#readme",
+  "dependencies": {},
+  "devDependencies": {}
+}

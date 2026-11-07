@@ -1,0 +1,24 @@
+# Normalize every text file to LF in the repository. This machine has
+# core.autocrlf=true system-wide (Git for Windows default), which would
+# otherwise store CRLF blobs and show the whole tree as modified.
+* text=auto eol=lf
+
+# Never touch these.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+
+# Windows-only scripts stay CRLF so cmd.exe/PowerShell keep working.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf

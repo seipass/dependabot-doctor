@@ -1,0 +1,11 @@
+# Runs the doctor when .github/dependabot.yml changes, so a config edit that
+# matches nothing fails in the pull request instead of in a log nobody reads.
+- id: dependabot-doctor
+  name: dependabot-doctor
+  description: Find dependabot.yml groups, ignore rules and directory globs that match nothing.
+  entry: node bin/dependabot-doctor.js
+  language: node
+  files: '(^|/)\.github/dependabot\.ya?ml$'
+  pass_filenames: false
+  additional_dependencies: []
+  minimum_pre_commit_version: '3.0.0'

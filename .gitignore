@@ -1,0 +1,7 @@
+node_modules/
+*.log
+.gate-cache/
+tools/gate/cache/
+tools/gate/repos.json
+tools/gate/results.json
+out.json
