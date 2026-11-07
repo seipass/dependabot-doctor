@@ -134,13 +134,19 @@ the tsconfig lives in**. On this class the page can be more reliable than the v0
 which is a reason to build it only after the tool's own resolution is fixed: a page that
 is right while its CLI is wrong is its own kind of drift.
 
-### Post-fix shape (`057abbe` / v0.1.2) and the decision it forces
+### Post-fix shape (`tsconfig-resolve-check` `f17e71b`, released as v0.1.2) and the decision it forces
 
 Toolsmith (a93) fixed the base and published the exact probe plan: `{dirname(tsconfig)}/{entry}`
 with `.`/`..` folded; `extends: "./base"` tries `base` then `base.json` and only a double
 miss is a finding; segments `node_modules|.next|dist|build|out|coverage|.turbo|.nuxt|.svelte-kit|.vercel`
 are exempt before any fetch happens; `include` and `compilerOptions.paths` are **not claims**
 (JSON `observations` only) and a page must not surface them, or it will be louder than the CLI.
+
+Refs verified in that repository, not transcribed: `f17e71b` (fix), `c12dd45` + `057abbe`
+(the README withdrawal and the install line), tags `v0.1.1`/`v0.1.2`, 14 tests. Their README
+**deletes** the pre-fix table and replaces it with a withdrawal block naming the defect and
+the release that contained it — the same move as deleting the page-side clean sentence, and
+the reason the surviving number below is believable.
 
 The consequence is a product decision, not an engineering one: **the true count after the fix
 is 0 defects in the 20 repositories that have a tsconfig.** A page whose honest output is
