@@ -1,4 +1,4 @@
-# Find the groups in your dependabot.yml that match nothing
+# Dependabot groups not working? Why a group matches nothing (and how to check yours)
 
 When Dependabot silently stops grouping, the only thing it tells you is one line
 in an update-job log:
@@ -11,10 +11,9 @@ command, without a token.
 
 ## What it looks like
 
-Real output, run against a real public repository
-([`Fastjur/dependabot-group-specificity-repro`](https://github.com/Fastjur/dependabot-group-specificity-repro),
-pinned at `c0f39de`), whose config is the reproduction case from
-[dependabot-core#14576](https://github.com/dependabot/dependabot-core/issues/14576):
+Example: [`Fastjur/dependabot-group-specificity-repro`](https://github.com/Fastjur/dependabot-group-specificity-repro)
+— the repro repo from [dependabot-core #14576](https://github.com/dependabot/dependabot-core/issues/14576),
+deliberately tiny. Real output, pasted from a run pinned at `c0f39de`:
 
 ```
 1 group matched, but lost its dependency to a higher-scoring group.
@@ -127,10 +126,10 @@ Two different bugs hide behind that search, and they need opposite fixes:
 
 1. **Matches nothing.** A typo in `patterns`, a dependency that was removed, a
    group narrowed by `exclude-patterns`, or an `allow` list that excludes every
-   match. Patch: widen the pattern, or delete the group.
+   match. Fix: widen the pattern, or delete the group.
 2. **Matched, then captured.** The group is fine but something else scores
    higher — usually a group with no `patterns` key (500) or a group whose
-   patterns are more specific. Patch: make this group's patterns more specific,
+   patterns are more specific. Fix: make this group's patterns more specific,
    or give the catch-all `patterns: ["*"]` so it scores 1 instead of 500.
 
 ## `dependabot.yml ignore not working`
@@ -173,8 +172,8 @@ and only the first is visible to this tool:
   `**`, which can only make us quieter.
 - **Config validity.** We check matching, not validity. We do not claim a file is
   valid, and we do not claim GitHub would reject one.
-- **Writing files.** There is no write path in this package. The patch is printed
-  (`--patch`) and never applied.
+- **Writing files.** There is no write path in this package: findings, fix
+  suggestions and any diff are printed, never applied.
 
 ## Exit codes
 
@@ -249,7 +248,7 @@ lockfile included) is not `matched` (dependencies that reached the group), and
   grouping), `common/lib/dependabot/config/update_config.rb` and
   `ignore_condition.rb` (union, not first match), and
   `common/lib/dependabot/config/file.rb` (ecosystem enum, name normalisers).
-- 76 tests, including the counter-cases: order-independence, equal-score ties,
+- 80 tests, including a `git apply --check` test on the printed patch and the counter-cases: order-independence, equal-score ties,
   `patterns: []` versus absent, allow-before-grouping, PEP 503 name matching,
   a 500/500 tie, and a repo with no lockfile (which must produce no finding).
 - Real configs: 23 of 23 public `.github/dependabot.yml` files used during
