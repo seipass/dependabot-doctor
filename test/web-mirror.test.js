@@ -73,6 +73,8 @@ test('the release-tag guard itself fires, and only for real tags', () => {
  */
 test('the release record describes the bytes it was built from', () => {
   assert.ok(release.source_commit, 'RELEASE.json must name the commit the bytes came from');
+  // Delete this line together with the alias after v0.1.5 and assert
+  // release.commit === undefined instead, so a resurrected alias fails.
   assert.equal(release.commit, release.source_commit, 'the commit alias must not disagree with source_commit');
   // It must be an ancestor of this commit: a record cannot name its own commit
   // (the id is a hash over a tree that contains the record), so it names the

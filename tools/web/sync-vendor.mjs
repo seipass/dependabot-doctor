@@ -129,6 +129,12 @@ const record = {
   // Alias for gates written against the older field name. Same value as
   // source_commit; the test asserts they stay equal so this cannot drift into
   // a second, contradictory identity.
+  //
+  // REMOVAL CONDITION (Reviewer, v0.1.5 gate): delete this alias in the first
+  // non-release commit after v0.1.5, flip the test to assert 'commit' is
+  // absent, and drop this comment. An alias is a second name for one fact; it
+  // exists only because a reader was late, and no future record may pass with
+  // two identities that could disagree.
   commit: release.source_commit,
   generated: new Date().toISOString(),
   note: 'docs/js/vendor/core is a byte-identical mirror of core/ at source_commit. Regenerate with tools/web/sync-vendor.mjs. Fields describe the source of the bytes, never the commit that contains this file.',
