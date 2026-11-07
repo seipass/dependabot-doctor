@@ -59,23 +59,15 @@ try {
   release = fromHead
     ? {
         ref,
-        commit: git('rev-parse', 'HEAD^{commit}').trim(),
-        tag_object: null,
-        tree: git('rev-parse', 'HEAD^{tree}').trim(),
+        source_commit: git('rev-parse', 'HEAD^{commit}').trim(),
+        source_tree: git('rev-parse', 'HEAD^{tree}').trim(),
         subject: git('log', '-1', '--format=%s', 'HEAD').trim(),
-        source: 'HEAD at generation time; the tag is cut on this commit after the gates pass',
+        source: 'core/ bytes vendored from this commit; the release tag is cut later on a descendant',
       }
     : {
         ref,
-        commit: git('rev-parse', `${ref}^{commit}`).trim(),
-        tag_object: (() => {
-          try {
-            return git('rev-parse', `${ref}^{commit}^{tag}`).trim();
-          } catch {
-            return null;
-          }
-        })(),
-        tree: git('rev-parse', `${ref}^{tree}`).trim(),
+        source_commit: git('rev-parse', `${ref}^{commit}`).trim(),
+        source_tree: git('rev-parse', `${ref}^{tree}`).trim(),
         subject: git('log', '-1', '--format=%s', `${ref}^{commit}`).trim(),
       };
 } catch (error) {
@@ -135,7 +127,7 @@ writeFileSync(join(repoRoot, 'docs', 'js', 'demo-fixture.js'), demoSource);
 const record = {
   ...release,
   generated: new Date().toISOString(),
-  note: 'docs/js/vendor/ is a byte-identical mirror of this ref. Regenerate with tools/web/sync-vendor.mjs.',
+  note: 'docs/js/vendor/core is a byte-identical mirror of core/ at source_commit. Regenerate with tools/web/sync-vendor.mjs. Fields describe the source of the bytes, never the commit that contains this file.',
   core_files: files,
   demo: { repo: DEMO_REPO, sha: DEMO_SHA, taken: demo.taken, files: Object.fromEntries(Object.entries(demo.files).map(([p, v]) => [p, { sha256: v.sha256, bytes: v.bytes }])) },
 };

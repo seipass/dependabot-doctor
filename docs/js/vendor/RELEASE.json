@@ -1,12 +1,11 @@
 {
   "ref": "v0.1.5",
-  "commit": "6446e62ee60e3589e918b3208e7b85295eccfd2d",
-  "tag_object": null,
-  "tree": "7c24688df88e05d9183241bfce8410dc20ba24ee",
-  "subject": "fix(page): make the release-tag guard fire, and test the guard itself",
-  "source": "HEAD at generation time; the tag is cut on this commit after the gates pass",
-  "generated": "2026-11-07T06:06:15.324Z",
-  "note": "docs/js/vendor/ is a byte-identical mirror of this ref. Regenerate with tools/web/sync-vendor.mjs.",
+  "source_commit": "a97035dedce970997d466a4942f5ab62bb75de6d",
+  "source_tree": "97847ad993f1fab4b020b6b5af974286194e3985",
+  "subject": "fix(release): describe the commit being released, not the previous tag",
+  "source": "core/ bytes vendored from this commit; the release tag is cut later on a descendant",
+  "generated": "2026-11-07T06:08:17.269Z",
+  "note": "docs/js/vendor/core is a byte-identical mirror of core/ at source_commit. Regenerate with tools/web/sync-vendor.mjs. Fields describe the source of the bytes, never the commit that contains this file.",
   "core_files": {
     "core/analyze.js": {
       "sha256": "3ae573a25df670e2f1b4a9cbd1d29e29c9696f2f444c26be1883248aad923b27",

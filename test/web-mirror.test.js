@@ -71,19 +71,18 @@ test('the release-tag guard itself fires, and only for real tags', () => {
  * describe itself, so an untagged record says tag_object: null rather than
  * inheriting the previous release's identity.
  */
-test('the release record describes this commit', { skip: !process.env.CI && false }, () => {
-  const head = execFileSync('git', ['show', '-s', '--format=%H%n%T', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim().split('\n');
-  const [commit, tree] = head;
-  assert.equal(release.commit, commit, 'RELEASE.json.commit is not HEAD');
-  assert.equal(release.tree, tree, 'RELEASE.json.tree is not HEAD^{tree}');
-  const tagObject = (() => {
-    try {
-      return execFileSync('git', ['rev-parse', 'HEAD^{commit}^{tag}'], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
-    } catch {
-      return null;
-    }
-  })();
-  assert.equal(release.tag_object, tagObject, 'RELEASE.json.tag_object disagrees with whether HEAD is tagged');
+test('the release record describes the bytes it was built from', () => {
+  assert.ok(release.source_commit, 'RELEASE.json must name the commit the bytes came from');
+  // It must be an ancestor of this commit: a record cannot name its own commit
+  // (the id is a hash over a tree that contains the record), so it names the
+  // source instead, which stays true forever.
+  execFileSync('git', ['merge-base', '--is-ancestor', release.source_commit, 'HEAD'], { cwd: root, stdio: 'ignore' });
+  for (const [path, meta] of Object.entries(release.core_files)) {
+    const bytes = execFileSync('git', ['show', release.source_commit + ':' + path], { cwd: root, encoding: 'buffer' });
+    assert.equal(sha256(bytes), meta.sha256, path + ': vendored bytes do not match ' + release.source_commit);
+  }
+  assert.equal(release.tree, undefined, 'a record must not claim the tree of the commit that contains it');
+  assert.equal(release.tag_object, undefined, 'a record must not carry a tag object it cannot know');
 });
 
 const hasGit = () => {
