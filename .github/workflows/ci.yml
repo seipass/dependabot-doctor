@@ -30,7 +30,15 @@ jobs:
           - os: windows-latest
             node: 24
     steps:
+      # The web-mirror test does `git show <tag>:core/...` to prove the page's
+      # vendored engine matches a released tag. actions/checkout fetches no tags
+      # by default, so that test failed in CI on every platform with
+      # "fatal: invalid object name 'v0.1.2'" while passing locally — a workflow
+      # fault, not a code fault. Fetch the full history and the tags.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
 
       - uses: actions/setup-node@v7
         with:
