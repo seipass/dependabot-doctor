@@ -126,6 +126,10 @@ writeFileSync(join(repoRoot, 'docs', 'js', 'demo-fixture.js'), demoSource);
 // ---- release record -------------------------------------------------------
 const record = {
   ...release,
+  // Alias for gates written against the older field name. Same value as
+  // source_commit; the test asserts they stay equal so this cannot drift into
+  // a second, contradictory identity.
+  commit: release.source_commit,
   generated: new Date().toISOString(),
   note: 'docs/js/vendor/core is a byte-identical mirror of core/ at source_commit. Regenerate with tools/web/sync-vendor.mjs. Fields describe the source of the bytes, never the commit that contains this file.',
   core_files: files,

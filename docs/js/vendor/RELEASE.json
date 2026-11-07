@@ -1,10 +1,11 @@
 {
   "ref": "v0.1.5",
-  "source_commit": "a97035dedce970997d466a4942f5ab62bb75de6d",
-  "source_tree": "97847ad993f1fab4b020b6b5af974286194e3985",
-  "subject": "fix(release): describe the commit being released, not the previous tag",
+  "source_commit": "2b71d77cdedff07994642bc7bc1acbce502911fd",
+  "source_tree": "6a5fc5f23e725ecc39c317cf2a55d7ac6027f59e",
+  "subject": "fix(release): the record describes the bytes, not the commit that contains it",
   "source": "core/ bytes vendored from this commit; the release tag is cut later on a descendant",
-  "generated": "2026-11-07T06:08:17.269Z",
+  "commit": "2b71d77cdedff07994642bc7bc1acbce502911fd",
+  "generated": "2026-11-07T06:09:23.896Z",
   "note": "docs/js/vendor/core is a byte-identical mirror of core/ at source_commit. Regenerate with tools/web/sync-vendor.mjs. Fields describe the source of the bytes, never the commit that contains this file.",
   "core_files": {
     "core/analyze.js": {
